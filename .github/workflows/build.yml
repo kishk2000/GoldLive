@@ -1,44 +1,165 @@
-name: Build GoldLive APK
+package com.goldlive.app
 
-on:
-  workflow_dispatch:
-  push:
-    branches:
-      - main
+import android.app.Activity
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.content.Context
+import android.graphics.Color
+import android.os.Build
+import android.os.Bundle
+import android.view.Gravity
+import android.widget.Button
+import android.widget.LinearLayout
+import android.widget.TextView
+import android.widget.Toast
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
+class MainActivity : Activity() {
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+    private val channelId = "gold_live"
 
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.9'
+        createNotificationChannel()
 
-      - name: Show project files
-        run: |
-          echo "=== PROJECT ==="
-          find . -maxdepth 5 -type f | sort
-          echo "=== GRADLE ==="
-          gradle --version
+        val root = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.TOP
+            setPadding(30, 40, 30, 30)
+            setBackgroundColor(Color.rgb(10, 10, 10))
+        }
 
-      - name: Build APK
-        run: |
-          gradle assembleDebug --stacktrace --info
+        val title = TextView(this).apply {
+            text = "GOLD LIVE"
+            textSize = 30f
+            setTextColor(Color.rgb(212, 175, 55))
+            gravity = Gravity.CENTER
+            setPadding(0, 10, 0, 30)
+        }
 
-      - name: Upload APK
-        if: success()
-        uses: actions/upload-artifact@v4
-        with:
-          name: GoldLive-APK
-          path: app/build/outputs/apk/debug/app-debug.apk
+        root.addView(title)
+
+        val globalTitle = TextView(this).apply {
+            text = "الذهب العالمي"
+            textSize = 18f
+            setTextColor(Color.WHITE)
+            setPadding(0, 10, 0, 5)
+        }
+
+        root.addView(globalTitle)
+
+        val globalPrice = TextView(this).apply {
+            text = "$3,400.25 / oz"
+            textSize = 30f
+            setTextColor(Color.rgb(212, 175, 55))
+            setPadding(0, 5, 0, 25)
+        }
+
+        root.addView(globalPrice)
+
+        val egyptTitle = TextView(this).apply {
+            text = "مصر — أسعار الذهب"
+            textSize = 18f
+            setTextColor(Color.WHITE)
+            setPadding(0, 10, 0, 10)
+        }
+
+        root.addView(egyptTitle)
+
+        val prices = TextView(this).apply {
+            text = """
+عيار 24    6,686 ج
+عيار 21    5,850 ج
+عيار 18    5,014 ج
+            """.trimIndent()
+
+            textSize = 21f
+            setTextColor(Color.WHITE)
+            setPadding(0, 10, 0, 25)
+        }
+
+        root.addView(prices)
+
+        val update = TextView(this).apply {
+            text = "آخر تحديث: تجريبي"
+            textSize = 13f
+            setTextColor(Color.LTGRAY)
+            setPadding(0, 5, 0, 20)
+        }
+
+        root.addView(update)
+
+        val button = Button(this).apply {
+            text = "تفعيل شريط الأسعار"
+
+            setOnClickListener {
+                showGoldNotification()
+            }
+        }
+
+        root.addView(button)
+
+        setContentView(root)
+    }
+
+    private fun createNotificationChannel() {
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+
+            val channel = NotificationChannel(
+                channelId,
+                "GoldLive",
+                NotificationManager.IMPORTANCE_LOW
+            )
+
+            channel.description = "أسعار الذهب"
+
+            val manager =
+                getSystemService(Context.NOTIFICATION_SERVICE)
+                        as NotificationManager
+
+            manager.createNotificationChannel(channel)
+        }
+    }
+
+    private fun showGoldNotification() {
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+
+            if (checkSelfPermission(
+                    android.Manifest.permission.POST_NOTIFICATIONS
+                ) != android.content.pm.PackageManager.PERMISSION_GRANTED
+            ) {
+                requestPermissions(
+                    arrayOf(android.Manifest.permission.POST_NOTIFICATIONS),
+                    100
+                )
+                return
+            }
+        }
+
+        val notification =
+            NotificationCompat.Builder(this, channelId)
+                .setSmallIcon(android.R.drawable.ic_dialog_info)
+                .setContentTitle("GoldLive")
+                .setContentText(
+                    "🌍 $3,400.25 | 🇪🇬 21K 5,850 ج"
+                )
+                .setOngoing(true)
+                .setPriority(NotificationCompat.PRIORITY_LOW)
+                .setAutoCancel(false)
+                .build()
+
+        NotificationManagerCompat
+            .from(this)
+            .notify(1001, notification)
+
+        Toast.makeText(
+            this,
+            "تم تفعيل شريط الأسعار",
+            Toast.LENGTH_SHORT
+        ).show()
+    }
+}
