@@ -1,141 +1,36 @@
-package com.goldlive.app
+name: Build GoldLive APK
 
-import android.app.Activity
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.content.Context
-import android.graphics.Color
-import android.os.Build
-import android.os.Bundle
-import android.view.Gravity
-import android.widget.Button
-import android.widget.LinearLayout
-import android.widget.TextView
-import android.widget.Toast
-import androidx.core.app.NotificationCompat
-import androidx.core.app.NotificationManagerCompat
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
 
-class MainActivity : Activity() {
+jobs:
+  build:
+    runs-on: ubuntu-latest
 
-    private val channelId = "gold_live"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
 
-        createNotificationChannel()
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
 
-        val root = LinearLayout(this)
-        root.orientation = LinearLayout.VERTICAL
-        root.gravity = Gravity.TOP
-        root.setPadding(30, 40, 30, 30)
-        root.setBackgroundColor(Color.rgb(10, 10, 10))
+      - name: Build APK
+        run: gradle assembleDebug --stacktrace --info
 
-        val title = TextView(this)
-        title.text = "GOLD LIVE"
-        title.textSize = 30f
-        title.setTextColor(Color.rgb(212, 175, 55))
-        title.gravity = Gravity.CENTER
-        title.setPadding(0, 10, 0, 30)
-
-        root.addView(title)
-
-        val globalTitle = TextView(this)
-        globalTitle.text = "الذهب العالمي"
-        globalTitle.textSize = 18f
-        globalTitle.setTextColor(Color.WHITE)
-        globalTitle.setPadding(0, 10, 0, 5)
-
-        root.addView(globalTitle)
-
-        val globalPrice = TextView(this)
-        globalPrice.text = "$3,400.25 / oz"
-        globalPrice.textSize = 30f
-        globalPrice.setTextColor(Color.rgb(212, 175, 55))
-        globalPrice.setPadding(0, 5, 0, 25)
-
-        root.addView(globalPrice)
-
-        val egyptTitle = TextView(this)
-        egyptTitle.text = "مصر — أسعار الذهب"
-        egyptTitle.textSize = 18f
-        egyptTitle.setTextColor(Color.WHITE)
-        egyptTitle.setPadding(0, 10, 0, 10)
-
-        root.addView(egyptTitle)
-
-        val prices = TextView(this)
-        prices.text =
-            "عيار 24    6,686 ج\n" +
-            "عيار 21    5,850 ج\n" +
-            "عيار 18    5,014 ج"
-
-        prices.textSize = 21f
-        prices.setTextColor(Color.WHITE)
-        prices.setPadding(0, 10, 0, 25)
-
-        root.addView(prices)
-
-        val update = TextView(this)
-        update.text = "آخر تحديث: تجريبي"
-        update.textSize = 13f
-        update.setTextColor(Color.LTGRAY)
-        update.setPadding(0, 5, 0, 20)
-
-        root.addView(update)
-
-        val button = Button(this)
-        button.text = "تفعيل شريط الأسعار"
-
-        button.setOnClickListener {
-            showGoldNotification()
-        }
-
-        root.addView(button)
-
-        setContentView(root)
-    }
-
-    private fun createNotificationChannel() {
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-
-            val channel = NotificationChannel(
-                channelId,
-                "GoldLive",
-                NotificationManager.IMPORTANCE_LOW
-            )
-
-            channel.description = "أسعار الذهب"
-
-            val manager =
-                getSystemService(Context.NOTIFICATION_SERVICE)
-                        as NotificationManager
-
-            manager.createNotificationChannel(channel)
-        }
-    }
-
-    private fun showGoldNotification() {
-
-        val notification =
-            NotificationCompat.Builder(this, channelId)
-                .setSmallIcon(android.R.drawable.ic_dialog_info)
-                .setContentTitle("GoldLive")
-                .setContentText(
-                    "🌍 $3,400.25 | 🇪🇬 21K 5,850 ج"
-                )
-                .setOngoing(true)
-                .setPriority(NotificationCompat.PRIORITY_LOW)
-                .build()
-
-        NotificationManagerCompat
-            .from(this)
-            .notify(1001, notification)
-
-        Toast.makeText(
-            this,
-            "تم تفعيل شريط الأسعار",
-            Toast.LENGTH_SHORT
-        ).show()
-    }
-}
+      - name: Upload APK
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: GoldLive-APK
+          path: app/build/outputs/apk/debug/app-debug.apk
