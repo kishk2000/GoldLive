@@ -24,79 +24,70 @@ class MainActivity : Activity() {
 
         createNotificationChannel()
 
-        val root = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.TOP
-            setPadding(30, 40, 30, 30)
-            setBackgroundColor(Color.rgb(10, 10, 10))
-        }
+        val root = LinearLayout(this)
+        root.orientation = LinearLayout.VERTICAL
+        root.gravity = Gravity.TOP
+        root.setPadding(30, 40, 30, 30)
+        root.setBackgroundColor(Color.rgb(10, 10, 10))
 
-        val title = TextView(this).apply {
-            text = "GOLD LIVE"
-            textSize = 30f
-            setTextColor(Color.rgb(212, 175, 55))
-            gravity = Gravity.CENTER
-            setPadding(0, 10, 0, 30)
-        }
+        val title = TextView(this)
+        title.text = "GOLD LIVE"
+        title.textSize = 30f
+        title.setTextColor(Color.rgb(212, 175, 55))
+        title.gravity = Gravity.CENTER
+        title.setPadding(0, 10, 0, 30)
 
         root.addView(title)
 
-        val globalTitle = TextView(this).apply {
-            text = "الذهب العالمي"
-            textSize = 18f
-            setTextColor(Color.WHITE)
-            setPadding(0, 10, 0, 5)
-        }
+        val globalTitle = TextView(this)
+        globalTitle.text = "الذهب العالمي"
+        globalTitle.textSize = 18f
+        globalTitle.setTextColor(Color.WHITE)
+        globalTitle.setPadding(0, 10, 0, 5)
 
         root.addView(globalTitle)
 
-        val globalPrice = TextView(this).apply {
-            text = "$3,400.25 / oz"
-            textSize = 30f
-            setTextColor(Color.rgb(212, 175, 55))
-            setPadding(0, 5, 0, 25)
-        }
+        val globalPrice = TextView(this)
+        globalPrice.text = "$3,400.25 / oz"
+        globalPrice.textSize = 30f
+        globalPrice.setTextColor(Color.rgb(212, 175, 55))
+        globalPrice.setPadding(0, 5, 0, 25)
 
         root.addView(globalPrice)
 
-        val egyptTitle = TextView(this).apply {
-            text = "مصر — أسعار الذهب"
-            textSize = 18f
-            setTextColor(Color.WHITE)
-            setPadding(0, 10, 0, 10)
-        }
+        val egyptTitle = TextView(this)
+        egyptTitle.text = "مصر — أسعار الذهب"
+        egyptTitle.textSize = 18f
+        egyptTitle.setTextColor(Color.WHITE)
+        egyptTitle.setPadding(0, 10, 0, 10)
 
         root.addView(egyptTitle)
 
-        val prices = TextView(this).apply {
-            text = """
-عيار 24    6,686 ج
-عيار 21    5,850 ج
-عيار 18    5,014 ج
-            """.trimIndent()
+        val prices = TextView(this)
+        prices.text =
+            "عيار 24    6,686 ج\n" +
+            "عيار 21    5,850 ج\n" +
+            "عيار 18    5,014 ج"
 
-            textSize = 21f
-            setTextColor(Color.WHITE)
-            setPadding(0, 10, 0, 25)
-        }
+        prices.textSize = 21f
+        prices.setTextColor(Color.WHITE)
+        prices.setPadding(0, 10, 0, 25)
 
         root.addView(prices)
 
-        val update = TextView(this).apply {
-            text = "آخر تحديث: تجريبي"
-            textSize = 13f
-            setTextColor(Color.LTGRAY)
-            setPadding(0, 5, 0, 20)
-        }
+        val update = TextView(this)
+        update.text = "آخر تحديث: تجريبي"
+        update.textSize = 13f
+        update.setTextColor(Color.LTGRAY)
+        update.setPadding(0, 5, 0, 20)
 
         root.addView(update)
 
-        val button = Button(this).apply {
-            text = "تفعيل شريط الأسعار"
+        val button = Button(this)
+        button.text = "تفعيل شريط الأسعار"
 
-            setOnClickListener {
-                showGoldNotification()
-            }
+        button.setOnClickListener {
+            showGoldNotification()
         }
 
         root.addView(button)
@@ -126,20 +117,6 @@ class MainActivity : Activity() {
 
     private fun showGoldNotification() {
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-
-            if (checkSelfPermission(
-                    android.Manifest.permission.POST_NOTIFICATIONS
-                ) != android.content.pm.PackageManager.PERMISSION_GRANTED
-            ) {
-                requestPermissions(
-                    arrayOf(android.Manifest.permission.POST_NOTIFICATIONS),
-                    100
-                )
-                return
-            }
-        }
-
         val notification =
             NotificationCompat.Builder(this, channelId)
                 .setSmallIcon(android.R.drawable.ic_dialog_info)
@@ -149,7 +126,6 @@ class MainActivity : Activity() {
                 )
                 .setOngoing(true)
                 .setPriority(NotificationCompat.PRIORITY_LOW)
-                .setAutoCancel(false)
                 .build()
 
         NotificationManagerCompat
