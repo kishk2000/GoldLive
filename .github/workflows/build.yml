@@ -26,7 +26,9 @@ jobs:
           gradle-version: '8.9'
 
       - name: Build APK
-        run: gradle assembleDebug --stacktrace --info
+        run: |
+          gradle :app:compileDebugKotlin --stacktrace --console=plain
+          gradle :app:assembleDebug --stacktrace --console=plain
 
       - name: Upload APK
         if: success()
