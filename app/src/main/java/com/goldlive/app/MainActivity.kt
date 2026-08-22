@@ -1263,6 +1263,7 @@ class MainActivity : Activity() {
 
         content.addView(
             footer,
+            
             LinearLayout.LayoutParams(
                 -1,
                 -2
@@ -1275,6 +1276,7 @@ class MainActivity : Activity() {
 
         scroll.addView(
             content,
+            
             ScrollView.LayoutParams(
                 -1,
                 -2
@@ -1283,6 +1285,7 @@ class MainActivity : Activity() {
 
         root.addView(
             scroll,
+            
             LinearLayout.LayoutParams(
                 -1,
                 0,
