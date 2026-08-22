@@ -44,6 +44,8 @@ class MainActivity : Activity() {
 
     private var lastGoldUsd = 0.0
 
+    private var notificationEnabled = false
+
     private lateinit var globalPriceText: TextView
     private lateinit var dollarPriceText: TextView
     private lateinit var localPriceText: TextView
@@ -51,8 +53,6 @@ class MainActivity : Activity() {
     private lateinit var statusText: TextView
     private lateinit var karatSpinner: Spinner
     private lateinit var notificationButton: Button
-
-    private var notificationEnabled = false
 
     private val usdFormatter =
         DecimalFormat("#,##0.00")
@@ -64,7 +64,6 @@ class MainActivity : Activity() {
         object : Runnable {
 
             override fun run() {
-
                 loadGoldPrice()
 
                 handler.postDelayed(
@@ -80,7 +79,6 @@ class MainActivity : Activity() {
         super.onCreate(savedInstanceState)
 
         createNotificationChannel()
-
         requestNotificationPermission()
 
         buildInterface()
@@ -92,7 +90,6 @@ class MainActivity : Activity() {
 
         val root =
             LinearLayout(this).apply {
-
                 orientation =
                     LinearLayout.VERTICAL
 
@@ -113,16 +110,13 @@ class MainActivity : Activity() {
 
         val content =
             LinearLayout(this).apply {
-
                 orientation =
                     LinearLayout.VERTICAL
             }
 
         val title =
             TextView(this).apply {
-
                 text = "GOLD LIVE"
-
                 textSize = 30f
 
                 setTextColor(
@@ -148,7 +142,6 @@ class MainActivity : Activity() {
 
         val subtitle =
             TextView(this).apply {
-
                 text =
                     "أسعار الذهب لحظة بلحظة"
 
@@ -171,16 +164,10 @@ class MainActivity : Activity() {
 
         content.addView(subtitle)
 
-
-        // =========================
-        // الذهب العالمي
-        // =========================
-
         val globalTitle =
             TextView(this).apply {
-
                 text =
-                    "🌍  الذهب العالمي"
+                    "🌍 الذهب العالمي"
 
                 textSize = 18f
 
@@ -200,7 +187,6 @@ class MainActivity : Activity() {
 
         globalPriceText =
             TextView(this).apply {
-
                 text =
                     "جاري تحميل السعر..."
 
@@ -231,7 +217,6 @@ class MainActivity : Activity() {
 
         val ounceLabel =
             TextView(this).apply {
-
                 text =
                     "USD / Troy Ounce"
 
@@ -243,31 +228,18 @@ class MainActivity : Activity() {
 
                 gravity =
                     Gravity.CENTER
-
-                setPadding(
-                    0,
-                    0,
-                    0,
-                    15
-                )
             }
 
         content.addView(
             ounceLabel
         )
 
-
-        // =========================
-        // سعر الدولار
-        // =========================
-
         dollarPriceText =
             TextView(this).apply {
-
                 text =
                     "الدولار: -- جنيه"
 
-                textSize = 17f
+                textSize = 18f
 
                 setTextColor(
                     Color.LTGRAY
@@ -278,7 +250,7 @@ class MainActivity : Activity() {
 
                 setPadding(
                     0,
-                    0,
+                    15,
                     0,
                     20
                 )
@@ -288,16 +260,10 @@ class MainActivity : Activity() {
             dollarPriceText
         )
 
-
-        // =========================
-        // الذهب في مصر
-        // =========================
-
         val localTitle =
             TextView(this).apply {
-
                 text =
-                    "🇪🇬  سعر الذهب في مصر"
+                    "🇪🇬 سعر الذهب في مصر"
 
                 textSize = 18f
 
@@ -314,7 +280,6 @@ class MainActivity : Activity() {
             }
 
         content.addView(localTitle)
-
 
         karatSpinner =
             Spinner(this)
@@ -340,35 +305,28 @@ class MainActivity : Activity() {
 
         karatSpinner.onItemSelectedListener =
             object :
-                android.widget.AdapterView.OnItemSelectedListener {
+                AdapterView.OnItemSelectedListener {
 
                 override fun onNothingSelected(
-                    parent:
-                    android.widget.AdapterView<*>?
+                    parent: AdapterView<*>?
                 ) {
                 }
 
                 override fun onItemSelected(
-                    parent:
-                    android.widget.AdapterView<*>?,
-                    view:
-                    android.view.View?,
+                    parent: AdapterView<*>?,
+                    view: android.view.View?,
                     position: Int,
                     id: Long
                 ) {
 
                     selectedKarat =
                         when (position) {
-
                             0 -> 24
-
                             1 -> 21
-
                             else -> 18
                         }
 
                     updateLocalPrice()
-
                     updateNotification()
                 }
             }
@@ -377,10 +335,8 @@ class MainActivity : Activity() {
             karatSpinner
         )
 
-
         localPriceText =
             TextView(this).apply {
-
                 text =
                     "-- ج / جرام"
 
@@ -405,12 +361,9 @@ class MainActivity : Activity() {
             localPriceText
         )
 
-
         changeText =
             TextView(this).apply {
-
                 text = "—"
-
                 textSize = 15f
 
                 gravity =
@@ -428,12 +381,10 @@ class MainActivity : Activity() {
             changeText
         )
 
-
         statusText =
             TextView(this).apply {
-
                 text =
-                    "جاري الاتصال بمصدر الأسعار..."
+                    "جاري الاتصال..."
 
                 textSize = 13f
 
@@ -455,11 +406,6 @@ class MainActivity : Activity() {
         content.addView(
             statusText
         )
-
-
-        // =========================
-        // الإشعارات
-        // =========================
 
         notificationButton =
             Button(this).apply {
@@ -513,20 +459,15 @@ class MainActivity : Activity() {
             notificationButton
         )
 
-
         val info =
             TextView(this).apply {
 
-                text = """
-                    
-                    التحديث: كل ثانيتين
-                    
-                    • السعر العالمي بالدولار
-                    • سعر الدولار بالجنيه المصري
-                    • أسعار الذهب في مصر
-                    • اختر العيار الذي تريد عرضه
-                    • يمكن إظهار السعر في شريط الإشعارات
-                """.trimIndent()
+                text =
+                    "التحديث: كل ثانيتين\n\n" +
+                    "• السعر العالمي بالدولار\n" +
+                    "• سعر الدولار بالجنيه المصري\n" +
+                    "• أسعار عيار 24 و21 و18\n" +
+                    "• شريط أسعار في الإشعارات"
 
                 textSize = 13f
 
@@ -557,23 +498,16 @@ class MainActivity : Activity() {
         setContentView(root)
     }
 
-
-    // =========================
-    // تحميل البيانات
-    // =========================
-
     private fun loadGoldPrice() {
 
         thread {
 
             try {
 
-                val url =
-                    URL(workerUrl)
-
                 val connection =
-                    url.openConnection()
-                        as HttpURLConnection
+                    URL(workerUrl)
+                        .openConnection()
+                            as HttpURLConnection
 
                 connection.requestMethod =
                     "GET"
@@ -601,19 +535,16 @@ class MainActivity : Activity() {
                 val json =
                     JSONObject(response)
 
-                val success =
-                    json.optBoolean(
+                if (
+                    !json.optBoolean(
                         "success",
                         false
                     )
-
-                if (!success) {
-
+                ) {
                     throw Exception(
-                        "API returned success=false"
+                        "API error"
                     )
                 }
-
 
                 val newGoldUsd =
                     json.getDouble(
@@ -640,12 +571,7 @@ class MainActivity : Activity() {
                         "gram18"
                     )
 
-
                 runOnUiThread {
-
-                    // =====================
-                    // التغير في السعر العالمي
-                    // =====================
 
                     if (
                         lastGoldUsd > 0
@@ -657,7 +583,6 @@ class MainActivity : Activity() {
 
                         changeText.text =
                             when {
-
                                 difference > 0 ->
                                     "▲ +${
                                         usdFormatter.format(
@@ -678,7 +603,6 @@ class MainActivity : Activity() {
 
                         changeText.setTextColor(
                             when {
-
                                 difference > 0 ->
                                     Color.rgb(
                                         70,
@@ -717,11 +641,6 @@ class MainActivity : Activity() {
                     goldEgp18 =
                         newGoldEgp18
 
-
-                    // =====================
-                    // عرض السعر العالمي
-                    // =====================
-
                     globalPriceText.text =
                         "$${
                             usdFormatter.format(
@@ -729,22 +648,12 @@ class MainActivity : Activity() {
                             )
                         }"
 
-
-                    // =====================
-                    // عرض الدولار
-                    // =====================
-
                     dollarPriceText.text =
                         "الدولار: ${
                             egpFormatter.format(
                                 usdEgp
                             )
                         } جنيه"
-
-
-                    // =====================
-                    // الحالة
-                    // =====================
 
                     statusText.text =
                         "● متصل — آخر تحديث الآن"
@@ -757,13 +666,13 @@ class MainActivity : Activity() {
                         )
                     )
 
-
                     updateLocalPrice()
-
                     updateNotification()
                 }
 
-            } catch (e: Exception) {
+            } catch (
+                e: Exception
+            ) {
 
                 runOnUiThread {
 
@@ -782,27 +691,14 @@ class MainActivity : Activity() {
         }
     }
 
-
-    // =========================
-    // تحديث السعر المحلي
-    // =========================
-
     private fun updateLocalPrice() {
 
         val price =
             when (selectedKarat) {
-
-                24 ->
-                    goldEgp24
-
-                21 ->
-                    goldEgp21
-
-                18 ->
-                    goldEgp18
-
-                else ->
-                    goldEgp21
+                24 -> goldEgp24
+                21 -> goldEgp21
+                18 -> goldEgp18
+                else -> goldEgp21
             }
 
         if (price <= 0) {
@@ -821,39 +717,19 @@ class MainActivity : Activity() {
             } ج / جرام\nعيار $selectedKarat"
     }
 
-
-    // =========================
-    // سعر العيار المختار
-    // =========================
-
     private fun getSelectedLocalPrice():
-            String {
+        String {
 
         val price =
             when (selectedKarat) {
-
-                24 ->
-                    goldEgp24
-
-                21 ->
-                    goldEgp21
-
-                18 ->
-                    goldEgp18
-
-                else ->
-                    goldEgp21
+                24 -> goldEgp24
+                21 -> goldEgp21
+                18 -> goldEgp18
+                else -> goldEgp21
             }
 
-        return egpFormatter.format(
-            price
-        )
+        return egpFormatter.format(price)
     }
-
-
-    // =========================
-    // الإشعار
-    // =========================
 
     private fun updateNotification() {
 
@@ -871,13 +747,84 @@ class MainActivity : Activity() {
                 usdFormatter.format(
                     goldUsd
                 )
-            }  •  🇪🇬 $localPrice ج"
-
+            } • 🇪🇬 $localPrice ج"
 
         val notification =
-            NotificationCompat.Builder(
-                this,
-                channelId
-            )
+            NotificationCompat
+                .Builder(
+                    this,
+                    channelId
+                )
                 .setSmallIcon(
-                    and
+                    android.R.drawable
+                        .ic_dialog_info
+                )
+                .setContentTitle(
+                    "GoldLive • عيار $selectedKarat"
+                )
+                .setContentText(text)
+                .setOngoing(true)
+                .setOnlyAlertOnce(true)
+                .setPriority(
+                    NotificationCompat
+                        .PRIORITY_LOW
+                )
+                .setCategory(
+                    NotificationCompat
+                        .CATEGORY_STATUS
+                )
+                .build()
+
+        if (
+            Build.VERSION.SDK_INT < 33 ||
+            ActivityCompat
+                .checkSelfPermission(
+                    this,
+                    Manifest.permission
+                        .POST_NOTIFICATIONS
+                ) ==
+                PackageManager
+                    .PERMISSION_GRANTED
+        ) {
+
+            NotificationManagerCompat
+                .from(this)
+                .notify(
+                    notificationId,
+                    notification
+                )
+        }
+    }
+
+    private fun createNotificationChannel() {
+
+        if (
+            Build.VERSION.SDK_INT >=
+            Build.VERSION_CODES.O
+        ) {
+
+            val channel =
+                NotificationChannel(
+                    channelId,
+                    "GoldLive",
+                    NotificationManager
+                        .IMPORTANCE_LOW
+                )
+
+            channel.description =
+                "سعر الذهب في شريط الإشعارات"
+
+            channel.setShowBadge(false)
+
+            val manager =
+                getSystemService(
+                    Context.NOTIFICATION_SERVICE
+                ) as NotificationManager
+
+            manager.createNotificationChannel(
+                channel
+            )
+        }
+    }
+
+    private fun requestNotifica
