@@ -175,9 +175,9 @@ class MainActivity : Activity() {
 
         createInterface()
 
-        handler.post(
-            updateTask
-        )
+// handler.post(
+//     updateTask
+// )
     }
 
     // =========================================================
