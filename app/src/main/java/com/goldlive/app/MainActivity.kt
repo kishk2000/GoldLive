@@ -25,6 +25,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
@@ -936,21 +937,4 @@ class MainActivity : Activity() {
                             as HttpURLConnection
 
                 connection.requestMethod =
-                    "GET"
-
-                connection.connectTimeout =
-                    7000
-
-                connection.readTimeout =
-                    7000
-
-                connection.useCaches =
-                    false
-
-                val response =
-                    connection
-                        .inputStream
-                        .bufferedReader()
-                        .use {
-                            it.readText()
-                        
+                   
