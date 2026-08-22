@@ -20,7 +20,6 @@ import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
 import java.text.DecimalFormat
-import java.util.Locale
 import kotlin.concurrent.thread
 
 class MainActivity : Activity() {
@@ -31,9 +30,13 @@ class MainActivity : Activity() {
     private val handler = Handler(Looper.getMainLooper())
 
     private var selectedKarat = 21
+
     private var goldUsd = 0.0
     private var goldEgp24 = 0.0
-    private var lastPrice = 0.0
+    private var goldEgp21 = 0.0
+    private var goldEgp18 = 0.0
+
+    private var lastUsdPrice = 0.0
 
     private lateinit var globalPriceText: TextView
     private lateinit var localPriceText: TextView
@@ -44,13 +47,37 @@ class MainActivity : Activity() {
 
     private var notificationEnabled = false
 
-    private val formatter = DecimalFormat("#,##0.00")
-    private val egpFormatter = DecimalFormat("#,##0")
+    private val formatter =
+        DecimalFormat("#,##0.00")
 
-    private val updateRunnable = object : Runnable {
+    private val egpFormatter =
+        DecimalFormat("#,##0.00")
+
+    /*
+     * تحديث واجهة التطبيق كل ثانيتين.
+     *
+     * مصدر الأسعار نفسه لا يتم طلبه كل ثانيتين
+     * حتى لا نستهلك حد API بسرعة.
+     */
+    private val uiRunnable = object : Runnable {
         override fun run() {
-            loadGoldPrice()
+
+            updateLocalPrice()
+            updateNotification()
+
             handler.postDelayed(this, 2000)
+        }
+    }
+
+    /*
+     * تحديث الأسعار من الإنترنت كل 30 ثانية.
+     */
+    private val networkRunnable = object : Runnable {
+        override fun run() {
+
+            loadGoldPrice()
+
+            handler.postDelayed(this, 30000)
         }
     }
 
@@ -62,7 +89,10 @@ class MainActivity : Activity() {
 
         buildInterface()
 
-        handler.post(updateRunnable)
+        loadGoldPrice()
+
+        handler.post(uiRunnable)
+        handler.postDelayed(networkRunnable, 30000)
     }
 
     private fun buildInterface() {
@@ -157,7 +187,10 @@ class MainActivity : Activity() {
         karatSpinner.onItemSelectedListener =
             object : android.widget.AdapterView.OnItemSelectedListener {
 
-                override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
+                override fun onNothingSelected(
+                    parent: android.widget.AdapterView<*>?
+                ) {
+                }
 
                 override fun onItemSelected(
                     parent: android.widget.AdapterView<*>?,
@@ -194,6 +227,7 @@ class MainActivity : Activity() {
             textSize = 15f
             gravity = Gravity.CENTER
             setPadding(0, 4, 0, 10)
+            setTextColor(Color.GRAY)
         }
 
         content.addView(changeText)
@@ -209,11 +243,13 @@ class MainActivity : Activity() {
         content.addView(statusText)
 
         notificationButton = Button(this).apply {
+
             text = "🔔 تفعيل شريط الأسعار"
 
             setOnClickListener {
 
-                notificationEnabled = !notificationEnabled
+                notificationEnabled =
+                    !notificationEnabled
 
                 if (notificationEnabled) {
 
@@ -247,14 +283,19 @@ class MainActivity : Activity() {
         content.addView(notificationButton)
 
         val info = TextView(this).apply {
+
             text = """
                 
-                التحديث: كل ثانيتين
+                🌍 الأونصة العالمية بالدولار
                 
-                • السعر العالمي بالدولار
-                • السعر المحلي بالجنيه المصري
-                • اختر العيار الذي تريد عرضه
-                • يمكن إظهار السعر المختار في شريط الإشعارات
+                🇪🇬 أسعار الذهب في مصر
+                
+                • عيار 24
+                • عيار 21
+                • عيار 18
+                
+                🔄 تحديث البيانات تلقائيًا
+                🔔 يمكن عرض السعر المختار في الإشعارات
             """.trimIndent()
 
             textSize = 13f
@@ -281,86 +322,80 @@ class MainActivity : Activity() {
 
         thread {
 
+            var connection: HttpURLConnection? = null
+
             try {
 
-                val url =
-                    URL("https://xaus.com/api/v1/spot?currency=USD&unit=oz")
+                val workerUrl =
+                    URL(
+                        "https://goldlive-api.tonetone200060.workers.dev/gold"
+                    )
 
-                val connection =
-                    url.openConnection() as HttpURLConnection
+                connection =
+                    workerUrl.openConnection()
+                            as HttpURLConnection
 
                 connection.requestMethod = "GET"
-                connection.connectTimeout = 5000
-                connection.readTimeout = 5000
+
+                connection.connectTimeout = 10000
+                connection.readTimeout = 10000
+
+                val responseCode =
+                    connection.responseCode
+
+                if (responseCode != 200) {
+                    throw Exception(
+                        "HTTP $responseCode"
+                    )
+                }
 
                 val response =
                     connection.inputStream
                         .bufferedReader()
-                        .use { it.readText() }
-
-                connection.disconnect()
-
-                val json = JSONObject(response)
-
-                val price = when {
-                    json.has("price") ->
-                        json.getDouble("price")
-
-                    json.has("spot_usd_oz") ->
-                        json.getDouble("spot_usd_oz")
-
-                    json.has("xau") ->
-                        json.getJSONObject("xau")
-                            .getDouble("price")
-
-                    else -> 0.0
-                }
-
-                if (price > 0) {
-
-                    runOnUiThread {
-
-                        if (lastPrice > 0) {
-
-                            val difference =
-                                price - lastPrice
-
-                            changeText.text =
-                                if (difference > 0) {
-                                    "▲ +${formatter.format(difference)} USD"
-                                } else if (difference < 0) {
-                                    "▼ ${formatter.format(difference)} USD"
-                                } else {
-                                    "— ثابت"
-                                }
-
-                            changeText.setTextColor(
-                                if (difference > 0)
-                                    Color.rgb(70, 200, 110)
-                                else if (difference < 0)
-                                    Color.rgb(230, 80, 80)
-                                else
-                                    Color.GRAY
-                            )
+                        .use {
+                            it.readText()
                         }
 
-                        lastPrice = price
-                        goldUsd = price
+                val json =
+                    JSONObject(response)
 
-                        globalPriceText.text =
-                            "$${formatter.format(price)}"
-
-                        statusText.text =
-                            "● متصل — آخر تحديث الآن"
-
-                        statusText.setTextColor(
-                            Color.rgb(70, 200, 110)
-                        )
-
-                        updateLocalPrice()
-                        updateNotification()
-                    }
+                if (!json.optBoolean(
+                        "success",
+                        false
+                    )
+                ) {
+                    throw Exception(
+                        "API returned success=false"
+                    )
                 }
+
+                val egypt =
+                    json.getJSONObject("egypt")
+
+                goldEgp24 =
+                    egypt.optDouble(
+                        "gram24",
+                        0.0
+                    )
+
+                goldEgp21 =
+                    egypt.optDouble(
+                        "gram21",
+                        0.0
+                    )
+
+                goldEgp18 =
+                    egypt.optDouble(
+                        "gram18",
+                        0.0
+                    )
+
+                /*
+                 * الـWorker الحالي عندك لا يرجع
+                 * global/USD بعد، لذلك نجلب الأونصة
+                 * العالمية من المصدر العالمي مؤقتًا.
+                 */
+                loadGlobalUsdPrice()
 
             } catch (e: Exception) {
 
@@ -370,58 +405,248 @@ class MainActivity : Activity() {
                         "● تعذر الاتصال بمصدر الأسعار"
 
                     statusText.setTextColor(
-                        Color.rgb(230, 80, 80)
+                        Color.rgb(
+                            230,
+                            80,
+                            80
+                        )
                     )
                 }
+
+            } finally {
+
+                connection?.disconnect()
             }
+        }
+    }
+
+    private fun loadGlobalUsdPrice() {
+
+        var connection: HttpURLConnection? = null
+
+        try {
+
+            val url =
+                URL(
+                    "https://xaus.com/api/v1/spot?currency=USD&unit=oz"
+                )
+
+            connection =
+                url.openConnection()
+                        as HttpURLConnection
+
+            connection.requestMethod = "GET"
+
+            connection.connectTimeout = 10000
+            connection.readTimeout = 10000
+
+            val responseCode =
+                connection.responseCode
+
+            if (responseCode != 200) {
+                throw Exception(
+                    "Global API HTTP $responseCode"
+                )
+            }
+
+            val response =
+                connection.inputStream
+                    .bufferedReader()
+                    .use {
+                        it.readText()
+                    }
+
+            val json =
+                JSONObject(response)
+
+            val price =
+                when {
+
+                    json.has("price") ->
+                        json.getDouble("price")
+
+                    json.has("spot_usd_oz") ->
+                        json.getDouble(
+                            "spot_usd_oz"
+                        )
+
+                    json.has("xau") ->
+                        json.getJSONObject(
+                            "xau"
+                        ).getDouble("price")
+
+                    else ->
+                        0.0
+                }
+
+            if (price <= 0) {
+                throw Exception(
+                    "Invalid global price"
+                )
+            }
+
+            runOnUiThread {
+
+                if (lastUsdPrice > 0) {
+
+                    val difference =
+                        price - lastUsdPrice
+
+                    changeText.text =
+                        when {
+                            difference > 0 ->
+                                "▲ +${formatter.format(
+                                    difference
+                                )} USD"
+
+                            difference < 0 ->
+                                "▼ ${formatter.format(
+                                    difference
+                                )} USD"
+
+                            else ->
+                                "— ثابت"
+                        }
+
+                    changeText.setTextColor(
+                        when {
+                            difference > 0 ->
+                                Color.rgb(
+                                    70,
+                                    200,
+                                    110
+                                )
+
+                            difference < 0 ->
+                                Color.rgb(
+                                    230,
+                                    80,
+                                    80
+                                )
+
+                            else ->
+                                Color.GRAY
+                        }
+                    )
+                }
+
+                lastUsdPrice = price
+                goldUsd = price
+
+                globalPriceText.text =
+                    "$${formatter.format(
+                        goldUsd
+                    )}"
+
+                statusText.text =
+                    "● متصل — آخر تحديث الآن"
+
+                statusText.setTextColor(
+                    Color.rgb(
+                        70,
+                        200,
+                        110
+                    )
+
+                updateLocalPrice()
+                updateNotification()
+            }
+
+        } catch (e: Exception) {
+
+            runOnUiThread {
+
+                statusText.text =
+                    "● تم تحديث سعر مصر، وتعذر تحديث العالمي"
+
+                statusText.setTextColor(
+                    Color.rgb(
+                        230,
+                        180,
+                        60
+                    )
+                )
+            }
+
+        } finally {
+
+            connection?.disconnect()
         }
     }
 
     private fun updateLocalPrice() {
 
-        if (goldEgp24 <= 0) {
+        val price =
+            when (selectedKarat) {
 
-            /*
-             * سعر تقريبي محلي محسوب من السعر العالمي.
-             * سيتم استبداله بمصدر XAU/EGP مباشر في الخطوة التالية.
-             */
+                24 ->
+                    goldEgp24
 
-            val usdToEgp = 50.0
+                21 ->
+                    goldEgp21
 
-            val gram24 =
-                (goldUsd / 31.1034768) * usdToEgp
+                18 ->
+                    goldEgp18
 
-            goldEgp24 = gram24
-        }
+                else ->
+                    0.0
+            }
 
-        val price24 = goldEgp24
+        if (price <= 0) {
 
-        val price = when (selectedKarat) {
+            localPriceText.text =
+                "-- ج / جرام\nعيار $selectedKarat"
 
-            24 -> price24
-
-            21 -> price24 * 21.0 / 24.0
-
-            18 -> price24 * 18.0 / 24.0
-
-            else -> price24
+            return
         }
 
         localPriceText.text =
-            "${egpFormatter.format(price)} ج / جرام\nعيار $selectedKarat"
+            "${egpFormatter.format(
+                price
+            )} ج / جرام\nعيار $selectedKarat"
+    }
+
+    private fun getSelectedLocalPrice(): String {
+
+        val price =
+            when (selectedKarat) {
+
+                24 ->
+                    goldEgp24
+
+                21 ->
+                    goldEgp21
+
+                18 ->
+                    goldEgp18
+
+                else ->
+                    0.0
+            }
+
+        return egpFormatter.format(price)
     }
 
     private fun updateNotification() {
 
-        if (!notificationEnabled) return
+        if (!notificationEnabled) {
+            return
+        }
 
-        if (goldUsd <= 0) return
+        if (
+            goldUsd <= 0 &&
+            goldEgp24 <= 0
+        ) {
+            return
+        }
 
-        val localPriceTextValue =
+        val local =
             getSelectedLocalPrice()
 
         val text =
-            "🌍 $${formatter.format(goldUsd)}  •  🇪🇬 $localPriceTextValue ج"
+            "🌍 $${formatter.format(
+                goldUsd
+            )}  •  🇪🇬 عيار $selectedKarat $local ج"
 
         val notification =
             NotificationCompat.Builder(
@@ -432,7 +657,7 @@ class MainActivity : Activity() {
                     android.R.drawable.ic_dialog_info
                 )
                 .setContentTitle(
-                    "GoldLive • عيار $selectedKarat"
+                    "GoldLive"
                 )
                 .setContentText(text)
                 .setOngoing(true)
@@ -450,7 +675,8 @@ class MainActivity : Activity() {
             ActivityCompat.checkSelfPermission(
                 this,
                 Manifest.permission.POST_NOTIFICATIONS
-            ) == PackageManager.PERMISSION_GRANTED
+            ) ==
+            PackageManager.PERMISSION_GRANTED
         ) {
 
             NotificationManagerCompat
@@ -462,33 +688,19 @@ class MainActivity : Activity() {
         }
     }
 
-    private fun getSelectedLocalPrice(): String {
-
-        val price24 = goldEgp24
-
-        val price = when (selectedKarat) {
-
-            24 -> price24
-
-            21 -> price24 * 21.0 / 24.0
-
-            18 -> price24 * 18.0 / 24.0
-
-            else -> price24
-        }
-
-        return egpFormatter.format(price)
-    }
-
     private fun createNotificationChannel() {
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        if (
+            Build.VERSION.SDK_INT >=
+            Build.VERSION_CODES.O
+        ) {
 
-            val channel = NotificationChannel(
-                channelId,
-                "GoldLive",
-                NotificationManager.IMPORTANCE_LOW
-            )
+            val channel =
+                NotificationChannel(
+                    channelId,
+                    "GoldLive",
+                    NotificationManager.IMPORTANCE_LOW
+                )
 
             channel.description =
                 "سعر الذهب في شريط الإشعارات"
@@ -500,19 +712,24 @@ class MainActivity : Activity() {
                     Context.NOTIFICATION_SERVICE
                 ) as NotificationManager
 
-            manager.createNotificationChannel(channel)
+            manager.createNotificationChannel(
+                channel
+            )
         }
     }
 
     private fun requestNotificationPermission() {
 
-        if (Build.VERSION.SDK_INT >= 33) {
+        if (
+            Build.VERSION.SDK_INT >= 33
+        ) {
 
             if (
                 ActivityCompat.checkSelfPermission(
                     this,
                     Manifest.permission.POST_NOTIFICATIONS
-                ) != PackageManager.PERMISSION_GRANTED
+                ) !=
+                PackageManager.PERMISSION_GRANTED
             ) {
 
                 ActivityCompat.requestPermissions(
@@ -528,8 +745,14 @@ class MainActivity : Activity() {
 
     override fun onDestroy() {
 
-        handler.removeCallbacks(updateRunnable)
+        handler.removeCallbacks(
+            uiRunnable
+        )
+
+        handler.removeCallbacks(
+            networkRunnable
+        )
 
         super.onDestroy()
     }
-}
+                    }
