@@ -1,7 +1,6 @@
 package com.goldlive.app
 
 import android.app.Activity
-import android.content.Context
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
@@ -15,8 +14,6 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.ViewCompat
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
@@ -65,56 +62,39 @@ class MainActivity : Activity() {
     // API DATA
     // =========================================================
 
-    private var ounceUsd =
-        0.0
+    private var ounceUsd = 0.0
+    private var usdEgp = 0.0
+    private var gram24 = 0.0
+    private var gram21 = 0.0
+    private var gram18 = 0.0
+    private var gram14 = 0.0
+    private var goldCoin = 0.0
+    private var localOunce = 0.0
 
-    private var usdEgp =
-        0.0
+    // =========================================================
+    // PREVIOUS PRICES
+    // =========================================================
 
-    private var gram24 =
-        0.0
-
-    private var gram21 =
-        0.0
-
-    private var gram18 =
-        0.0
-
-    private var gram14 =
-        0.0
-
-    private var goldCoin =
-        0.0
-
-    private var localOunce =
-        0.0
+    private var previousGram24 = 0.0
+    private var previousGram21 = 0.0
+    private var previousGram18 = 0.0
+    private var previousGram14 = 0.0
 
     // =========================================================
     // UI REFERENCES
     // =========================================================
 
     private lateinit var globalPriceText: TextView
-
     private lateinit var dollarPriceText: TextView
-
     private lateinit var heroKaratText: TextView
-
     private lateinit var heroPriceText: TextView
-
     private lateinit var heroUnitText: TextView
-
     private lateinit var selectedPriceText: TextView
-
     private lateinit var selectedKaratText: TextView
-
     private lateinit var localOunceText: TextView
-
     private lateinit var goldCoinText: TextView
-
     private lateinit var statusText: TextView
-
     private lateinit var pricesContainer: LinearLayout
-
     private lateinit var karatButtonsContainer: LinearLayout
 
     // =========================================================
@@ -122,91 +102,43 @@ class MainActivity : Activity() {
     // =========================================================
 
     private val cream =
-        Color.rgb(
-            251,
-            243,
-            213
-        )
+        Color.rgb(251, 243, 213)
 
     private val cream2 =
-        Color.rgb(
-            246,
-            237,
-            205
-        )
+        Color.rgb(246, 237, 205)
 
     private val dark =
-        Color.rgb(
-            30,
-            41,
-            59
-        )
+        Color.rgb(30, 41, 59)
 
     private val dark2 =
-        Color.rgb(
-            15,
-            23,
-            42
-        )
+        Color.rgb(15, 23, 42)
 
     private val dark3 =
-        Color.rgb(
-            51,
-            65,
-            85
-        )
+        Color.rgb(51, 65, 85)
 
     private val gold =
-        Color.rgb(
-            212,
-            175,
-            55
-        )
+        Color.rgb(212, 175, 55)
 
     private val goldLight =
-        Color.rgb(
-            229,
-            169,
-            60
-        )
+        Color.rgb(229, 169, 60)
 
     private val goldBright =
-        Color.rgb(
-            255,
-            215,
-            70
-        )
+        Color.rgb(255, 215, 70)
 
     private val green =
-        Color.rgb(
-            34,
-            197,
-            94
-        )
+        Color.rgb(34, 197, 94)
 
     private val red =
-        Color.rgb(
-            239,
-            68,
-            68
-        )
+        Color.rgb(239, 68, 68)
 
     private val white =
         Color.WHITE
 
     private val lightText =
-        Color.rgb(
-            226,
-            232,
-            240
-        )
+        Color.rgb(226, 232, 240)
 
     private val grayText =
-        Color.rgb(
-            100,
-            116,
-            139
-        )
+        Color.rgb(100, 116, 139)
 
     // =========================================================
     // NUMBER FORMAT
@@ -215,17 +147,7 @@ class MainActivity : Activity() {
     private val numberFormat =
         DecimalFormat(
             "#,##0.00",
-            java.text.DecimalFormatSymbols(
-                Locale.US
-            )
-        )
-
-    private val wholeNumberFormat =
-        DecimalFormat(
-            "#,##0",
-            java.text.DecimalFormatSymbols(
-                Locale.US
-            )
+            java.text.DecimalFormatSymbols(Locale.US)
         )
 
     // =========================================================
@@ -239,10 +161,6 @@ class MainActivity : Activity() {
         super.onCreate(
             savedInstanceState
         )
-
-        // -----------------------------------------------------
-        // Keep the application below the phone Status Bar.
-        // -----------------------------------------------------
 
         WindowCompat.setDecorFitsSystemWindows(
             window,
@@ -285,10 +203,6 @@ class MainActivity : Activity() {
             12
         )
 
-        // -----------------------------------------------------
-        // Scroll View
-        // -----------------------------------------------------
-
         val scroll =
             ScrollView(this)
 
@@ -298,10 +212,6 @@ class MainActivity : Activity() {
         scroll.setBackgroundColor(
             cream
         )
-
-        // -----------------------------------------------------
-        // Main Content
-        // -----------------------------------------------------
 
         val content =
             LinearLayout(this)
@@ -339,10 +249,6 @@ class MainActivity : Activity() {
             18,
             15
         )
-
-        // -----------------------------------------------------
-        // Header Texts
-        // -----------------------------------------------------
 
         val headerTexts =
             LinearLayout(this)
@@ -390,10 +296,6 @@ class MainActivity : Activity() {
                 1f
             )
         )
-
-        // -----------------------------------------------------
-        // Live Indicator
-        // -----------------------------------------------------
 
         val live =
             createText(
@@ -461,19 +363,13 @@ class MainActivity : Activity() {
             16
         )
 
-        val globalTitle =
+        globalCard.addView(
             createText(
                 "🌍  الأونصة العالمية",
                 13f,
                 dark,
                 Typeface.BOLD
-            )
-
-        globalTitle.gravity =
-            Gravity.CENTER
-
-        globalCard.addView(
-            globalTitle,
+            ),
             LinearLayout.LayoutParams(
                 -1,
                 -2
@@ -556,19 +452,13 @@ class MainActivity : Activity() {
             16
         )
 
-        val dollarTitle =
+        dollarCard.addView(
             createText(
                 "💵  الدولار",
                 13f,
                 dark,
                 Typeface.BOLD
-            )
-
-        dollarTitle.gravity =
-            Gravity.CENTER
-
-        dollarCard.addView(
-            dollarTitle,
+            ),
             LinearLayout.LayoutParams(
                 -1,
                 -2
@@ -718,7 +608,7 @@ class MainActivity : Activity() {
 
         selectedPriceText =
             createText(
-                "السعر الحالي: -- جنيه",
+                "شراء: --    بيع: --",
                 14f,
                 white,
                 Typeface.BOLD
@@ -727,19 +617,14 @@ class MainActivity : Activity() {
         selectedPriceText.gravity =
             Gravity.CENTER
 
-        selectedPriceText.setPadding(
-            0,
-            10,
-            0,
-            0
-        )
-
         hero.addView(
             selectedPriceText,
             LinearLayout.LayoutParams(
                 -1,
                 -2
-            )
+            ).apply {
+                topMargin = dpToPx(10)
+            }
         )
 
         content.addView(
@@ -803,41 +688,10 @@ class MainActivity : Activity() {
         karatButtonsContainer.gravity =
             Gravity.CENTER
 
-        // -----------------------------------------------------
-        // Karat 24
-        // -----------------------------------------------------
-
-        createKaratButton(
-            "24",
-            24
-        )
-
-        // -----------------------------------------------------
-        // Karat 21
-        // -----------------------------------------------------
-
-        createKaratButton(
-            "21",
-            21
-        )
-
-        // -----------------------------------------------------
-        // Karat 18
-        // -----------------------------------------------------
-
-        createKaratButton(
-            "18",
-            18
-        )
-
-        // -----------------------------------------------------
-        // Karat 14
-        // -----------------------------------------------------
-
-        createKaratButton(
-            "14",
-            14
-        )
+        createKaratButton("24", 24)
+        createKaratButton("21", 21)
+        createKaratButton("18", 18)
+        createKaratButton("14", 14)
 
         selectorCard.addView(
             karatButtonsContainer,
@@ -858,19 +712,14 @@ class MainActivity : Activity() {
         selectedKaratText.gravity =
             Gravity.CENTER
 
-        selectedKaratText.setPadding(
-            0,
-            8,
-            0,
-            0
-        )
-
         selectorCard.addView(
             selectedKaratText,
             LinearLayout.LayoutParams(
                 -1,
                 -2
-            )
+            ).apply {
+                topMargin = dpToPx(8)
+            }
         )
 
         content.addView(
@@ -885,8 +734,7 @@ class MainActivity : Activity() {
             content,
             14
         )
-
-        // =====================================================
+                // =====================================================
         // PRICES TITLE
         // =====================================================
 
@@ -947,7 +795,8 @@ class MainActivity : Activity() {
             content,
             8
         )
-                // =====================================================
+
+        // =====================================================
         // PRICES TABLE HEADER
         // =====================================================
 
@@ -1088,19 +937,16 @@ class MainActivity : Activity() {
         )
 
         // =====================================================
-        // EXTRA PRICES
+        // EXTRA PRICES TITLE
         // =====================================================
 
-        val extraTitle =
+        content.addView(
             createText(
                 "أسعار إضافية",
                 19f,
                 dark,
                 Typeface.BOLD
-            )
-
-        content.addView(
-            extraTitle,
+            ),
             LinearLayout.LayoutParams(
                 -1,
                 -2
@@ -1115,512 +961,6 @@ class MainActivity : Activity() {
         // =====================================================
         // LOCAL OUNCE CARD
         // =====================================================
-
-        val localOunceCard =
-            createRoundedLayout(
-                white,
-                gold,
-                20f
-            )
-
-        localOunceCard.orientation =
-            LinearLayout.HORIZONTAL
-
-        localOunceCard.gravity =
-            Gravity.CENTER_VERTICAL
-
-        localOunceCard.setPadding(
-            14,
-            14,
-            14,
-            14
-        )
-
-        val localOunceTitle =
-            createText(
-                "الأونصة المحلية",
-                14f,
-                dark,
-                Typeface.BOLD
-            )
-
-        localOunceCard.addView(
-            localOunceTitle,
-            LinearLayout.LayoutParams(
-                0,
-                -2,
-                1f
-            )
-        )
-
-        localOunceText =
-            createText(
-                "--",
-                20f,
-                dark2,
-                Typeface.BOLD
-            )
-
-        localOunceText.gravity =
-            Gravity.CENTER
-
-        localOunceCard.addView(
-            localOunceText,
-            LinearLayout.LayoutParams(
-                -2,
-                -2
-            )
-        )
-
-        content.addView(
-            localOunceCard,
-            LinearLayout.LayoutParams(
-                -1,
-                -2
-            )
-        )
-
-        addGap(
-            content,
-            8
-        )
-
-        // =====================================================
-        // GOLD COIN CARD
-        // =====================================================
-
-        val goldCoinCard =
-            createRoundedLayout(
-                white,
-                gold,
-                20f
-            )
-
-        goldCoinCard.orientation =
-            LinearLayout.HORIZONTAL
-
-        goldCoinCard.gravity =
-            Gravity.CENTER_VERTICAL
-
-        goldCoinCard.setPadding(
-            14,
-            14,
-            14,
-            14
-        )
-
-        val goldCoinTitle =
-            createText(
-                "الجنيه الذهب",
-                14f,
-                dark,
-                Typeface.BOLD
-            )
-
-        goldCoinCard.addView(
-            goldCoinTitle,
-            LinearLayout.LayoutParams(
-                0,
-                -2,
-                1f
-            )
-        )
-
-        goldCoinText =
-            createText(
-                "--",
-                20f,
-                dark2,
-                Typeface.BOLD
-            )
-
-        goldCoinText.gravity =
-            Gravity.CENTER
-
-        goldCoinCard.addView(
-            goldCoinText,
-            LinearLayout.LayoutParams(
-                -2,
-                -2
-            )
-        )
-
-        content.addView(
-            goldCoinCard,
-            LinearLayout.LayoutParams(
-                -1,
-                -2
-            )
-        )
-
-        addGap(
-            content,
-            14
-        )
-
-        // =====================================================
-        // UPDATE INFORMATION CARD
-        // =====================================================
-
-        val infoCard =
-            createRoundedLayout(
-                dark3,
-                gold,
-                18f
-            )
-
-        infoCard.orientation =
-            LinearLayout.VERTICAL
-
-        infoCard.setPadding(
-            14,
-            14,
-            14,
-            14
-        )
-
-        val infoTitle =
-            createText(
-                "معلومات التحديث",
-                14f,
-                goldBright,
-                Typeface.BOLD
-            )
-
-        infoCard.addView(
-            infoTitle,
-            LinearLayout.LayoutParams(
-                -1,
-                -2
-            )
-        )
-
-        addGap(
-            infoCard,
-            6
-        )
-
-        val infoText =
-            createText(
-                "يتم تحديث الأسعار تلقائياً كل ثانيتين",
-                12f,
-                lightText,
-                Typeface.NORMAL
-            )
-
-        infoCard.addView(
-            infoText,
-            LinearLayout.LayoutParams(
-                -1,
-                -2
-            )
-        )
-
-        content.addView(
-            infoCard,
-            LinearLayout.LayoutParams(
-                -1,
-                -2
-            )
-        )
-
-        addGap(
-            content,
-            20
-        )
-
-        // =====================================================
-        // ADD CONTENT TO SCROLL
-        // =====================================================
-
-        scroll.addView(
-            content,
-            ScrollView.LayoutParams(
-                -1,
-                -2
-            )
-        )
-
-        root.addView(
-            scroll,
-            LinearLayout.LayoutParams(
-                -1,
-                0,
-                1f
-            )
-        )
-
-        // =====================================================
-        // ADD ROOT TO ACTIVITY
-        // =====================================================
-
-        setContentView(
-            root
-        )
-    }
-
-    // =========================================================
-    // CREATE KARAT BUTTON
-    // =========================================================
-
-    private fun createKaratButton(
-        title: String,
-        karat: Int
-    ) {
-
-        val button =
-            Button(this)
-
-        button.text =
-            title
-
-        button.textSize =
-            17f
-
-        button.setTypeface(
-            Typeface.DEFAULT,
-            Typeface.BOLD
-        )
-
-        button.setTextColor(
-            white
-        )
-
-        button.isAllCaps =
-            false
-
-        button.gravity =
-            Gravity.CENTER
-
-        button.setPadding(
-            0,
-            0,
-            0,
-            0
-        )
-
-        button.background =
-            createBackground(
-                if (
-                    karat ==
-                    selectedKarat
-                ) {
-                    gold
-                } else {
-                    dark
-                },
-                if (
-                    karat ==
-                    selectedKarat
-                ) {
-                    goldLight
-                } else {
-                    dark
-                },
-                18f
-            )
-
-        button.setOnClickListener {
-
-            selectedKarat =
-                karat
-
-            refreshKaratButtons()
-
-            updateSelectedKarat()
-        }
-
-        karatButtonsContainer.addView(
-            button,
-            LinearLayout.LayoutParams(
-                0,
-                52,
-                1f
-            ).apply {
-
-                setMargins(
-                    4,
-                    0,
-                    4,
-                    0
-                )
-            }
-        )
-    }
-
-    // =========================================================
-    // REFRESH KARAT BUTTONS
-    // =========================================================
-
-    private fun refreshKaratButtons() {
-
-        for (
-            i in 0 until
-            karatButtonsContainer.childCount
-        ) {
-
-            val view =
-                karatButtonsContainer.getChildAt(
-                    i
-                )
-
-            if (
-                view !is Button
-            ) {
-                continue
-            }
-
-            val karat =
-                view.text
-                    .toString()
-                    .toIntOrNull()
-                    ?: continue
-
-            view.background =
-                createBackground(
-                    if (
-                        karat ==
-                        selectedKarat
-                    ) {
-                        gold
-                    } else {
-                        dark
-                    },
-                    if (
-                        karat ==
-                        selectedKarat
-                    ) {
-                        goldLight
-                    } else {
-                        dark
-                    },
-                    18f
-                )
-        }
-    }
-
-    // =========================================================
-    // UPDATE SELECTED KARAT
-    // =========================================================
-
-    private fun updateSelectedKarat() {
-
-        val price =
-            getSelectedPrice()
-
-        heroKaratText.text =
-            "السعر الرئيسي • عيار $selectedKarat"
-
-        selectedKaratText.text =
-            "السعر الحالي لعيار $selectedKarat"
-
-        if (
-            price > 0.0
-        ) {
-
-            heroPriceText.text =
-                formatNumber(price)
-
-            selectedPriceText.text =
-                "السعر: ${formatNumber(price)} جنيه"
-        } else {
-
-            heroPriceText.text =
-                "--"
-
-            selectedPriceText.text =
-                "السعر: -- جنيه"
-        }
-    }
-
-    // =========================================================
-    // GET SELECTED PRICE
-    // =========================================================
-
-    private fun getSelectedPrice(): Double {
-
-        return when (
-            selectedKarat
-        ) {
-
-            24 ->
-                gram24
-
-            21 ->
-                gram21
-
-            18 ->
-                gram18
-
-            14 ->
-                gram14
-
-            else ->
-                gram21
-        }
-    }
-
-    // =========================================================
-    // NUMBER FORMAT
-    // =========================================================
-
-    private fun formatNumber(
-        value: Double
-    ): String {
-
-        if (
-            value <= 0.0
-        ) {
-            return "--"
-        }
-
-        return numberFormat.format(
-            value
-        )
-    }
-
-    // =========================================================
-    // WHOLE NUMBER FORMAT
-    // =========================================================
-
-    private fun formatWholeNumber(
-        value: Double
-    ): String {
-
-        if (
-            value <= 0.0
-        ) {
-            return "--"
-        }
-
-        return wholeNumberFormat.format(
-            value
-        )
-    }
-            // =====================================================
-        // EXTRA MARKET CARDS
-        // =====================================================
-
-        val extraTitle =
-            createText(
-                "مؤشرات السوق",
-                19f,
-                dark,
-                Typeface.BOLD
-            )
-
-        content.addView(
-            extraTitle
-        )
-
-        addGap(
-            content,
-            8
-        )
-
-        // -----------------------------------------------------
-        // LOCAL OUNCE
-        // -----------------------------------------------------
 
         val localOunceCard =
             createRoundedLayout(
@@ -1712,9 +1052,9 @@ class MainActivity : Activity() {
             8
         )
 
-        // -----------------------------------------------------
-        // GOLD COIN
-        // -----------------------------------------------------
+        // =====================================================
+        // GOLD COIN CARD
+        // =====================================================
 
         val goldCoinCard =
             createRoundedLayout(
@@ -1807,6 +1147,71 @@ class MainActivity : Activity() {
         )
 
         // =====================================================
+        // UPDATE INFORMATION CARD
+        // =====================================================
+
+        val infoCard =
+            createRoundedLayout(
+                dark3,
+                gold,
+                18f
+            )
+
+        infoCard.orientation =
+            LinearLayout.VERTICAL
+
+        infoCard.setPadding(
+            14,
+            14,
+            14,
+            14
+        )
+
+        infoCard.addView(
+            createText(
+                "معلومات التحديث",
+                14f,
+                goldBright,
+                Typeface.BOLD
+            ),
+            LinearLayout.LayoutParams(
+                -1,
+                -2
+            )
+        )
+
+        addGap(
+            infoCard,
+            6
+        )
+
+        infoCard.addView(
+            createText(
+                "يتم تحديث الأسعار تلقائياً كل ثانيتين",
+                12f,
+                lightText,
+                Typeface.NORMAL
+            ),
+            LinearLayout.LayoutParams(
+                -1,
+                -2
+            )
+        )
+
+        content.addView(
+            infoCard,
+            LinearLayout.LayoutParams(
+                -1,
+                -2
+            )
+        )
+
+        addGap(
+            content,
+            20
+        )
+
+        // =====================================================
         // FOOTER
         // =====================================================
 
@@ -1836,22 +1241,24 @@ class MainActivity : Activity() {
                 14f,
                 goldBright,
                 Typeface.BOLD
+            ),
+            LinearLayout.LayoutParams(
+                -1,
+                -2
             )
         )
 
-        val footerText =
+        footer.addView(
             createText(
                 "يتم تحديث الأسعار تلقائياً",
                 11f,
                 lightText,
                 Typeface.NORMAL
+            ),
+            LinearLayout.LayoutParams(
+                -1,
+                -2
             )
-
-        footerText.gravity =
-            Gravity.CENTER
-
-        footer.addView(
-            footerText
         )
 
         content.addView(
@@ -1863,7 +1270,7 @@ class MainActivity : Activity() {
         )
 
         // =====================================================
-        // SCROLL
+        // ADD CONTENT TO SCROLL
         // =====================================================
 
         scroll.addView(
@@ -1932,14 +1339,23 @@ class MainActivity : Activity() {
         button.minWidth =
             0
 
+        button.minimumWidth =
+            0
+
         button.background =
             createBackground(
-                if (karat == selectedKarat) {
+                if (
+                    karat ==
+                    selectedKarat
+                ) {
                     gold
                 } else {
                     dark
                 },
-                if (karat == selectedKarat) {
+                if (
+                    karat ==
+                    selectedKarat
+                ) {
                     goldLight
                 } else {
                     dark
@@ -1974,8 +1390,7 @@ class MainActivity : Activity() {
             }
         )
     }
-
-    // =========================================================
+        // =========================================================
     // REFRESH KARAT BUTTONS
     // =========================================================
 
@@ -1987,35 +1402,32 @@ class MainActivity : Activity() {
         ) {
 
             val view =
-                karatButtonsContainer.getChildAt(
-                    i
-                )
+                karatButtonsContainer.getChildAt(i)
 
-            if (
-                view is Button
-            ) {
-
-                val karat =
-                    view.text
-                        .toString()
-                        .toIntOrNull()
-                        ?: continue
-
-                view.background =
-                    createBackground(
-                        if (karat == selectedKarat) {
-                            gold
-                        } else {
-                            dark
-                        },
-                        if (karat == selectedKarat) {
-                            goldLight
-                        } else {
-                            dark
-                        },
-                        18f
-                    )
+            if (view !is Button) {
+                continue
             }
+
+            val karat =
+                view.text
+                    .toString()
+                    .toIntOrNull()
+                    ?: continue
+
+            view.background =
+                createBackground(
+                    if (karat == selectedKarat) {
+                        gold
+                    } else {
+                        dark
+                    },
+                    if (karat == selectedKarat) {
+                        goldLight
+                    } else {
+                        dark
+                    },
+                    18f
+                )
         }
     }
 
@@ -2041,6 +1453,14 @@ class MainActivity : Activity() {
 
             selectedPriceText.text =
                 "شراء: ${formatNumber(price)}    بيع: ${formatNumber(price)}"
+
+        } else {
+
+            heroPriceText.text =
+                "--"
+
+            selectedPriceText.text =
+                "شراء: --    بيع: --"
         }
     }
 
@@ -2052,20 +1472,12 @@ class MainActivity : Activity() {
 
         return when (selectedKarat) {
 
-            24 ->
-                gram24
+            24 -> gram24
+            21 -> gram21
+            18 -> gram18
+            14 -> gram14
 
-            21 ->
-                gram21
-
-            18 ->
-                gram18
-
-            14 ->
-                gram14
-
-            else ->
-                gram21
+            else -> gram21
         }
     }
 
@@ -2077,9 +1489,12 @@ class MainActivity : Activity() {
 
         thread {
 
+            var connection:
+                HttpURLConnection? = null
+
             try {
 
-                val connection =
+                connection =
                     URL(apiUrl)
                         .openConnection()
                             as HttpURLConnection
@@ -2093,15 +1508,15 @@ class MainActivity : Activity() {
                 connection.readTimeout =
                     10000
 
+                connection.useCaches =
+                    false
+
                 val responseCode =
                     connection.responseCode
 
                 if (
-                    responseCode !in
-                    200..299
+                    responseCode !in 200..299
                 ) {
-
-                    connection.disconnect()
 
                     runOnUiThread {
 
@@ -2122,8 +1537,6 @@ class MainActivity : Activity() {
                         .use {
                             it.readText()
                         }
-
-                connection.disconnect()
 
                 val json =
                     JSONObject(response)
@@ -2148,6 +1561,10 @@ class MainActivity : Activity() {
                         red
                     )
                 }
+
+            } finally {
+
+                connection?.disconnect()
             }
         }
     }
@@ -2159,6 +1576,19 @@ class MainActivity : Activity() {
     private fun parseApiData(
         json: JSONObject
     ) {
+
+        // حفظ الأسعار القديمة قبل تحديثها
+        previousGram24 =
+            gram24
+
+        previousGram21 =
+            gram21
+
+        previousGram18 =
+            gram18
+
+        previousGram14 =
+            gram14
 
         ounceUsd =
             getDouble(
@@ -2242,9 +1672,7 @@ class MainActivity : Activity() {
         vararg keys: String
     ): Double {
 
-        for (
-            key in keys
-        ) {
+        for (key in keys) {
 
             if (
                 json.has(key) &&
@@ -2263,10 +1691,7 @@ class MainActivity : Activity() {
 
                         is String ->
                             value
-                                .replace(
-                                    ",",
-                                    ""
-                                )
+                                .replace(",", "")
                                 .toDoubleOrNull()
                                 ?: 0.0
 
@@ -2277,6 +1702,7 @@ class MainActivity : Activity() {
                 } catch (
                     _: Exception
                 ) {
+                    // الانتقال للمفتاح التالي
                 }
             }
         }
@@ -2291,24 +1717,16 @@ class MainActivity : Activity() {
     private fun updateInterface() {
 
         globalPriceText.text =
-            formatNumber(
-                ounceUsd
-            )
+            formatNumber(ounceUsd)
 
         dollarPriceText.text =
-            formatNumber(
-                usdEgp
-            )
+            formatNumber(usdEgp)
 
         localOunceText.text =
-            formatNumber(
-                localOunce
-            )
+            formatNumber(localOunce)
 
         goldCoinText.text =
-            formatNumber(
-                goldCoin
-            )
+            formatNumber(goldCoin)
 
         updateSelectedKarat()
 
@@ -2321,8 +1739,7 @@ class MainActivity : Activity() {
             green
         )
     }
-
-    // =========================================================
+        // =========================================================
     // UPDATE PRICES TABLE
     // =========================================================
 
@@ -2332,22 +1749,26 @@ class MainActivity : Activity() {
 
         addPriceRow(
             "24",
-            gram24
+            gram24,
+            previousGram24
         )
 
         addPriceRow(
             "21",
-            gram21
+            gram21,
+            previousGram21
         )
 
         addPriceRow(
             "18",
-            gram18
+            gram18,
+            previousGram18
         )
 
         addPriceRow(
             "14",
-            gram14
+            gram14,
+            previousGram14
         )
     }
 
@@ -2357,23 +1778,25 @@ class MainActivity : Activity() {
 
     private fun addPriceRow(
         karat: String,
-        price: Double
+        price: Double,
+        previousPrice: Double
     ) {
+
+        val karatNumber =
+            karat.toInt()
+
+        val selected =
+            karatNumber ==
+                selectedKarat
 
         val row =
             createRoundedLayout(
-                if (
-                    karat.toInt() ==
-                    selectedKarat
-                ) {
+                if (selected) {
                     cream2
                 } else {
                     white
                 },
-                if (
-                    karat.toInt() ==
-                    selectedKarat
-                ) {
+                if (selected) {
                     gold
                 } else {
                     Color.LTGRAY
@@ -2434,10 +1857,12 @@ class MainActivity : Activity() {
             )
         )
 
+        // حالياً الـAPI يعطي سعراً واحداً لكل عيار.
+        // لذلك يظهر نفس السعر في خانة البيع
+        // إلى أن يتم توفير سعر بيع منفصل من الـAPI.
+
         val sellPrice =
-            if (
-                price > 0
-            ) {
+            if (price > 0.0) {
                 price
             } else {
                 0.0
@@ -2445,9 +1870,7 @@ class MainActivity : Activity() {
 
         val sellText =
             createText(
-                formatNumber(
-                    sellPrice
-                ),
+                formatNumber(sellPrice),
                 15f,
                 dark2,
                 Typeface.BOLD
@@ -2465,11 +1888,49 @@ class MainActivity : Activity() {
             )
         )
 
+        // =====================================================
+        // PRICE MOVEMENT
+        // =====================================================
+
+        val movementText =
+            when {
+
+                price <= 0.0 ->
+                    "—"
+
+                previousPrice <= 0.0 ->
+                    "●"
+
+                price > previousPrice ->
+                    "▲"
+
+                price < previousPrice ->
+                    "▼"
+
+                else ->
+                    "●"
+            }
+
+        val movementColor =
+            when {
+
+                price > previousPrice &&
+                    previousPrice > 0.0 ->
+                    green
+
+                price < previousPrice &&
+                    previousPrice > 0.0 ->
+                    red
+
+                else ->
+                    green
+            }
+
         val movement =
             createText(
-                "●",
+                movementText,
                 15f,
-                green,
+                movementColor,
                 Typeface.BOLD
             )
 
@@ -2485,10 +1946,14 @@ class MainActivity : Activity() {
             )
         )
 
+        // =====================================================
+        // ROW CLICK
+        // =====================================================
+
         row.setOnClickListener {
 
             selectedKarat =
-                karat.toInt()
+                karatNumber
 
             updateSelectedKarat()
 
@@ -2523,7 +1988,7 @@ class MainActivity : Activity() {
     ): String {
 
         if (
-            value == 0.0
+            value <= 0.0
         ) {
 
             return "--"
@@ -2552,7 +2017,7 @@ class MainActivity : Activity() {
             text
 
         view.textSize =
-                size
+            size
 
         view.setTextColor(
             color
@@ -2624,8 +2089,7 @@ class MainActivity : Activity() {
             )
         }
     }
-
-    // =========================================================
+        // =========================================================
     // ADD GAP
     // =========================================================
 
