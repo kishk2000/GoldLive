@@ -478,8 +478,7 @@ class MainActivity : Activity() {
             content,
             12
         )
-
-        // =====================================================
+                // =====================================================
         // EGYPT GOLD CARD
         // =====================================================
 
@@ -916,9 +915,7 @@ class MainActivity : Activity() {
                 height
             )
         )
-    }
-
-    // =========================================================
+    }    // =========================================================
     // LOAD PRICES
     // =========================================================
 
@@ -926,15 +923,280 @@ class MainActivity : Activity() {
 
         thread {
 
-            var connection:
-                HttpURLConnection? = null
+            var connection: HttpURLConnection? = null
 
             try {
 
                 connection =
                     URL(apiUrl)
-                        .openConnection()
-                            as HttpURLConnection
+                        .openConnection() as HttpURLConnection
 
                 connection.requestMethod =
-                   
+                    "GET"
+
+                connection.connectTimeout =
+                    7000
+
+                connection.readTimeout =
+                    7000
+
+                connection.useCaches =
+                    false
+
+                val response =
+                    connection.inputStream
+                        .bufferedReader()
+                        .use {
+                            it.readText()
+                        }
+
+                val json =
+                    JSONObject(response)
+
+                val success =
+                    json.optBoolean(
+                        "success",
+                        false
+                    )
+
+                if (!success) {
+                    throw Exception(
+                        "API returned success=false"
+                    )
+                }
+
+                ounceUsd =
+                    json.optDouble(
+                        "ounceUsd",
+                        0.0
+                    )
+
+                usdEgp =
+                    json.optDouble(
+                        "usdEgp",
+                        0.0
+                    )
+
+                gram24 =
+                    json.optDouble(
+                        "gram24",
+                        0.0
+                    )
+
+                gram21 =
+                    json.optDouble(
+                        "gram21",
+                        0.0
+                    )
+
+                gram18 =
+                    json.optDouble(
+                        "gram18",
+                        0.0
+                    )
+
+                runOnUiThread {
+
+                    globalPriceText.text =
+                        "${
+                            numberFormat.format(
+                                ounceUsd
+                            )
+                        } $"
+
+                    dollarPriceText.text =
+                        "${
+                            numberFormat.format(
+                                usdEgp
+                            )
+                        } جنيه"
+
+                    updateLocalPrice()
+
+                    statusText.text =
+                        "● متصل — آخر تحديث الآن"
+
+                    statusText.setTextColor(
+                        Color.rgb(
+                            40,
+                            130,
+                            60
+                        )
+                    )
+
+                    updateNotification()
+                }
+
+            } catch (e: Exception) {
+
+                runOnUiThread {
+
+                    statusText.text =
+                        "● تعذر تحديث الأسعار"
+
+                    statusText.setTextColor(
+                        Color.rgb(
+                            180,
+                            60,
+                            40
+                        )
+                    )
+                }
+
+            } finally {
+
+                connection?.disconnect()
+            }
+        }
+    }
+
+    // =========================================================
+    // UPDATE LOCAL PRICE
+    // =========================================================
+
+    private fun updateLocalPrice() {
+
+        val price =
+            when (selectedKarat) {
+                24 -> gram24
+                21 -> gram21
+                18 -> gram18
+                else -> gram21
+            }
+
+        if (price > 0.0) {
+
+            localPriceText.text =
+                "${
+                    numberFormat.format(
+                        price
+                    )
+                } ج / جرام"
+
+        } else {
+
+            localPriceText.text =
+                "-- ج / جرام"
+        }
+    }
+
+    // =========================================================
+    // UPDATE NOTIFICATION
+    // =========================================================
+
+    private fun updateNotification() {
+
+        if (!notificationEnabled) {
+            return
+        }
+
+        if (
+            ounceUsd <= 0.0 ||
+            usdEgp <= 0.0
+        ) {
+            return
+        }
+
+        if (
+            Build.VERSION.SDK_INT >= 33 &&
+            ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            return
+        }
+
+        val localPrice =
+            when (selectedKarat) {
+                24 -> gram24
+                21 -> gram21
+                18 -> gram18
+                else -> gram21
+            }
+
+        val notificationText =
+            "عيار $selectedKarat: ${
+                numberFormat.format(
+                    localPrice
+                )
+            } جنيه"
+
+        val notification =
+            NotificationCompat.Builder(
+                this,
+                channelId
+            )
+                .setSmallIcon(
+                    android.R.drawable.ic_dialog_info
+                )
+                .setContentTitle(
+                    "GOLD LIVE"
+                )
+                .setContentText(
+                    notificationText
+                )
+                .setStyle(
+                    NotificationCompat.BigTextStyle()
+                        .bigText(
+                            "الأونصة: ${
+                                numberFormat.format(
+                                    ounceUsd
+                                )
+                            } USD\n" +
+                            "الدولار: ${
+                                numberFormat.format(
+                                    usdEgp
+                                )
+                            } جنيه\n" +
+                            "عيار $selectedKarat: ${
+                                numberFormat.format(
+                                    localPrice
+                                )
+                            } جنيه/جرام"
+                        )
+                )
+                .setOngoing(true)
+                .setOnlyAlertOnce(true)
+                .setSilent(true)
+                .setPriority(
+                    NotificationCompat.PRIORITY_LOW
+                )
+                .build()
+
+        NotificationManagerCompat
+            .from(this)
+            .notify(
+                notificationId,
+                notification
+            )
+}    // =========================================================
+    // CANCEL NOTIFICATION
+    // =========================================================
+
+    private fun cancelNotification() {
+
+        NotificationManagerCompat
+            .from(this)
+            .cancel(
+                notificationId
+            )
+    }
+
+    // =========================================================
+    // ACTIVITY DESTROY
+    // =========================================================
+
+    override fun onDestroy() {
+
+        handler.removeCallbacks(
+            updateTask
+        )
+
+        if (notificationEnabled) {
+            cancelNotification()
+        }
+
+        super.onDestroy()
+    }
+}
