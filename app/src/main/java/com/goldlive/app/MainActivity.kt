@@ -25,7 +25,6 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
-import androidx.core.app.NotificationManagerCompat
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
@@ -39,6 +38,7 @@ class MainActivity : Activity() {
 
     private val channelId = "gold_live"
     private val notificationId = 1001
+    private val notificationPermissionCode = 200
 
     private val handler =
         Handler(Looper.getMainLooper())
@@ -67,12 +67,11 @@ class MainActivity : Activity() {
         object : Runnable {
 
             override fun run() {
-
                 loadPrices()
 
                 handler.postDelayed(
                     this,
-                    2000
+                    2000L
                 )
             }
         }
@@ -95,10 +94,7 @@ class MainActivity : Activity() {
 
     private fun createNotificationChannel() {
 
-        if (
-            Build.VERSION.SDK_INT >=
-            Build.VERSION_CODES.O
-        ) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
 
             val channel =
                 NotificationChannel(
@@ -129,9 +125,7 @@ class MainActivity : Activity() {
 
     private fun requestNotificationPermission() {
 
-        if (
-            Build.VERSION.SDK_INT >= 33
-        ) {
+        if (Build.VERSION.SDK_INT >= 33) {
 
             val permission =
                 ActivityCompat.checkSelfPermission(
@@ -149,7 +143,7 @@ class MainActivity : Activity() {
                     arrayOf(
                         Manifest.permission.POST_NOTIFICATIONS
                     ),
-                    200
+                    notificationPermissionCode
                 )
             }
         }
@@ -176,14 +170,17 @@ class MainActivity : Activity() {
         )
 
         root.setPadding(
-            16,
-            16,
-            16,
-            16
+            18,
+            18,
+            18,
+            18
         )
 
         val scroll =
             ScrollView(this)
+
+        scroll.isFillViewport =
+            true
 
         val content =
             LinearLayout(this)
@@ -216,8 +213,8 @@ class MainActivity : Activity() {
 
         headerBackground.setColor(
             Color.rgb(
-                55,
-                40,
+                45,
+                34,
                 12
             )
         )
@@ -281,9 +278,9 @@ class MainActivity : Activity() {
 
         subtitle.setTextColor(
             Color.rgb(
-                240,
+                235,
                 220,
-                170
+                175
             )
         )
 
@@ -358,7 +355,7 @@ class MainActivity : Activity() {
 
         globalPriceText.setPadding(
             0,
-            12,
+            15,
             0,
             5
         )
@@ -386,6 +383,13 @@ class MainActivity : Activity() {
 
         ounceLabel.gravity =
             Gravity.CENTER
+
+        ounceLabel.setPadding(
+            0,
+            0,
+            0,
+            8
+        )
 
         globalCard.addView(
             ounceLabel,
@@ -448,9 +452,9 @@ class MainActivity : Activity() {
 
         dollarPriceText.setPadding(
             0,
-            12,
+            15,
             0,
-            16
+            15
         )
 
         dollarCard.addView(
@@ -580,7 +584,7 @@ class MainActivity : Activity() {
             0,
             20,
             0,
-            12
+            15
         )
 
         egyptCard.addView(
@@ -734,7 +738,7 @@ class MainActivity : Activity() {
         )
 
         // =====================================================
-        // INFO
+        // INFORMATION
         // =====================================================
 
         val info =
@@ -777,14 +781,19 @@ class MainActivity : Activity() {
         )
 
         scroll.addView(
-            content
+            content,
+            LinearLayout.LayoutParams(
+                -1,
+                -2
+            )
         )
 
         root.addView(
             scroll,
             LinearLayout.LayoutParams(
                 -1,
-                -1
+                0,
+                1f
             )
         )
 
@@ -794,7 +803,7 @@ class MainActivity : Activity() {
     }
 
     // =========================================================
-    // CARD
+    // CREATE CARD
     // =========================================================
 
     private fun createCard(): LinearLayout {
@@ -845,7 +854,7 @@ class MainActivity : Activity() {
     }
 
     // =========================================================
-    // CARD TITLE
+    // CREATE TITLE
     // =========================================================
 
     private fun createTitle(
@@ -944,15 +953,4 @@ class MainActivity : Activity() {
                         .bufferedReader()
                         .use {
                             it.readText()
-                        }
-
-                val json =
-                    JSONObject(
-                        response
-                    )
-
-                if (
-                    !json.optBoolean(
-                        "success",
-                        false
-  
+                        
