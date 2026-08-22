@@ -14,146 +14,90 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import java.net.HttpURLConnection
 import java.net.URL
+import java.util.Locale
 import kotlin.concurrent.thread
 
 class MainActivity : Activity() {
 
     private val channelId = "gold_live"
 
-    private val gold = Color.rgb(212, 175, 55)
-    private val dark = Color.rgb(10, 10, 10)
-    private val card = Color.rgb(25, 25, 25)
-    private val white = Color.WHITE
-    private val gray = Color.rgb(170, 170, 170)
-    private val green = Color.rgb(70, 210, 120)
+    private lateinit var globalPriceText: TextView
+    private lateinit var selectedPriceText: TextView
+    private lateinit var changeText: TextView
+    private lateinit var updateText: TextView
+    private lateinit var karatSpinner: Spinner
 
-    private var selectedKarat = "21"
-    private var globalPrice = 0.0
+    private var lastGoldPrice = 0.0
 
-    private lateinit var globalPriceView: TextView
-    private lateinit var updateView: TextView
+    // سعر الدولار مقابل الجنيه مؤقتًا
+    // سنربطه بمصدر مباشر في الخطوة التالية
+    private val usdToEgp = 49.00
+
+    private val updateInterval = 2000L
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         createNotificationChannel()
         buildInterface()
-        loadGoldPrice()
+        startPriceUpdates()
     }
 
     private fun buildInterface() {
 
-        val scroll = ScrollView(this)
-
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setBackgroundColor(dark)
-            setPadding(20, 30, 20, 30)
+            setPadding(28, 35, 28, 28)
+            setBackgroundColor(Color.rgb(10, 10, 10))
+        }
+
+        val scrollView = ScrollView(this)
+
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
         }
 
         val title = TextView(this).apply {
             text = "GOLD LIVE"
             textSize = 30f
-            setTextColor(gold)
+            setTextColor(Color.rgb(212, 175, 55))
             gravity = Gravity.CENTER
-            setPadding(0, 10, 0, 5)
+            setPadding(0, 10, 0, 20)
         }
 
-        root.addView(title)
+        content.addView(title)
 
         val subtitle = TextView(this).apply {
-            text = "أسعار الذهب لحظة بلحظة"
-            textSize = 14f
-            setTextColor(gray)
+            text = "أسعار الذهب لحظيًا"
+            textSize = 16f
+            setTextColor(Color.LTGRAY)
             gravity = Gravity.CENTER
             setPadding(0, 0, 0, 25)
         }
 
-        root.addView(subtitle)
+        content.addView(subtitle)
 
-        val globalCard = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(20, 20, 20, 20)
-            setBackgroundColor(card)
-        }
+        content.addView(
+            createCard(
+                "🌍 الذهب العالمي",
+                "جارٍ تحميل السعر..."
+            ).also {
+                globalPriceText = it.findViewWithTag("price")
+            }
+        )
 
-        val globalTitle = TextView(this).apply {
-            text = "🌍 الذهب العالمي"
-            textSize = 18f
-            setTextColor(white)
-        }
+        addSpace(content, 18)
 
-        globalCard.addView(globalTitle)
-
-        globalPriceView = TextView(this).apply {
-            text = "جاري التحميل..."
-            textSize = 34f
-            setTextColor(gold)
-            setPadding(0, 15, 0, 5)
-        }
-
-        globalCard.addView(globalPriceView)
-
-        val unit = TextView(this).apply {
-            text = "USD / Ounce"
-            textSize = 13f
-            setTextColor(gray)
-        }
-
-        globalCard.addView(unit)
-
-        updateView = TextView(this).apply {
-            text = "جاري الاتصال بمصدر الأسعار..."
-            textSize = 13f
-            setTextColor(gray)
-            setPadding(0, 15, 0, 0)
-        }
-
-        globalCard.addView(updateView)
-
-        root.addView(globalCard)
-
-        addSpace(root, 20)
-
-        val egyptTitle = TextView(this).apply {
-            text = "🇪🇬 الذهب في مصر"
+        val selectedTitle = TextView(this).apply {
+            text = "🇪🇬 السعر المحلي"
             textSize = 20f
-            setTextColor(white)
-            setPadding(5, 5, 5, 12)
+            setTextColor(Color.WHITE)
+            setPadding(0, 10, 0, 10)
         }
 
-        root.addView(egyptTitle)
+        content.addView(selectedTitle)
 
-        addGoldRow(root, "عيار 24", "سيتم تحديثه")
-        addGoldRow(root, "عيار 21", "سيتم تحديثه")
-        addGoldRow(root, "عيار 18", "سيتم تحديثه")
-
-        addSpace(root, 20)
-
-        val notificationTitle = TextView(this).apply {
-            text = "🔔 شريط الأسعار"
-            textSize = 20f
-            setTextColor(white)
-            setPadding(5, 5, 5, 10)
-        }
-
-        root.addView(notificationTitle)
-
-        val notificationCard = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(20, 20, 20, 20)
-            setBackgroundColor(card)
-        }
-
-        val chooseText = TextView(this).apply {
-            text = "اختر العيار:"
-            textSize = 15f
-            setTextColor(gray)
-        }
-
-        notificationCard.addView(chooseText)
-
-        val spinner = Spinner(this)
+        karatSpinner = Spinner(this)
 
         val karats = arrayOf(
             "عيار 24",
@@ -161,13 +105,91 @@ class MainActivity : Activity() {
             "عيار 18"
         )
 
-        spinner.adapter = ArrayAdapter(
+        val adapter = ArrayAdapter(
             this,
             android.R.layout.simple_spinner_dropdown_item,
             karats
         )
 
-        spinner.onItemSelectedListener =
+        karatSpinner.adapter = adapter
+
+        content.addView(karatSpinner)
+
+        addSpace(content, 10)
+
+        selectedPriceText = TextView(this).apply {
+            text = "جارٍ تحميل السعر..."
+            textSize = 30f
+            setTextColor(Color.rgb(212, 175, 55))
+            gravity = Gravity.CENTER
+            setPadding(0, 15, 0, 15)
+        }
+
+        content.addView(selectedPriceText)
+
+        changeText = TextView(this).apply {
+            text = "—"
+            textSize = 17f
+            gravity = Gravity.CENTER
+            setPadding(0, 5, 0, 5)
+        }
+
+        content.addView(changeText)
+
+        addSpace(content, 15)
+
+        updateText = TextView(this).apply {
+            text = "جارٍ الاتصال بمصدر الأسعار..."
+            textSize = 13f
+            setTextColor(Color.GRAY)
+            gravity = Gravity.CENTER
+            setPadding(0, 10, 0, 10)
+        }
+
+        content.addView(updateText)
+
+        addSpace(content, 20)
+
+        val notificationButton = Button(this).apply {
+
+            text = "🔔 تفعيل شريط الأسعار"
+
+            setOnClickListener {
+                showGoldNotification(
+                    lastGoldPrice
+                )
+            }
+        }
+
+        content.addView(notificationButton)
+
+        addSpace(content, 15)
+
+        val info = TextView(this).apply {
+            text =
+                "يتم تحديث السعر تلقائيًا كل ثانيتين\n" +
+                "السعر المحلي تقديري حسب السعر العالمي وسعر الدولار."
+            textSize = 13f
+            setTextColor(Color.GRAY)
+            gravity = Gravity.CENTER
+            setPadding(10, 10, 10, 10)
+        }
+
+        content.addView(info)
+
+        scrollView.addView(content)
+
+        root.addView(
+            scrollView,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.MATCH_PARENT
+            )
+        )
+
+        setContentView(root)
+
+        karatSpinner.onItemSelectedListener =
             object : AdapterView.OnItemSelectedListener {
 
                 override fun onItemSelected(
@@ -176,246 +198,288 @@ class MainActivity : Activity() {
                     position: Int,
                     id: Long
                 ) {
-                    selectedKarat = when (position) {
-                        0 -> "24"
-                        1 -> "21"
-                        else -> "18"
-                    }
+                    updateLocalPrice(lastGoldPrice)
                 }
 
                 override fun onNothingSelected(
                     parent: AdapterView<*>?
-                ) {}
+                ) {
+                }
             }
+    }
 
-        notificationCard.addView(spinner)
+    private fun createCard(
+        title: String,
+        price: String
+    ): LinearLayout {
 
-        addSpace(notificationCard, 12)
-
-        val activate = Button(this).apply {
-            text = "🔔 تفعيل شريط الأسعار"
-
-            setOnClickListener {
-                showGoldNotification()
-            }
+        val card = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(25, 25, 25, 25)
+            setBackgroundColor(Color.rgb(25, 25, 25))
         }
 
-        notificationCard.addView(activate)
-
-        val disable = Button(this).apply {
-            text = "إيقاف شريط الأسعار"
-
-            setOnClickListener {
-                NotificationManagerCompat
-                    .from(this@MainActivity)
-                    .cancel(1001)
-
-                Toast.makeText(
-                    this@MainActivity,
-                    "تم إيقاف شريط الأسعار",
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
-        }
-
-        notificationCard.addView(disable)
-
-        root.addView(notificationCard)
-
-        addSpace(root, 20)
-
-        val refresh = Button(this).apply {
-            text = "🔄 تحديث السعر"
-
-            setOnClickListener {
-                loadGoldPrice()
-            }
-        }
-
-        root.addView(refresh)
-
-        addSpace(root, 15)
-
-        updateView = TextView(this).apply {
-            text = "آخر تحديث: لم يتم بعد"
-            textSize = 13f
-            setTextColor(gray)
+        val titleView = TextView(this).apply {
+            text = title
+            textSize = 18f
+            setTextColor(Color.WHITE)
             gravity = Gravity.CENTER
         }
 
-        root.addView(updateView)
-
-        scroll.addView(root)
-
-        setContentView(scroll)
-    }
-
-    private fun addGoldRow(
-        root: LinearLayout,
-        name: String,
-        price: String
-    ) {
-
-        val row = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            setPadding(20, 18, 20, 18)
-            setBackgroundColor(card)
-        }
-
-        val nameView = TextView(this).apply {
-            text = name
-            textSize = 19f
-            setTextColor(white)
-        }
+        card.addView(titleView)
 
         val priceView = TextView(this).apply {
             text = price
-            textSize = 18f
-            setTextColor(gold)
-            gravity = Gravity.END
+            textSize = 30f
+            setTextColor(Color.rgb(212, 175, 55))
+            gravity = Gravity.CENTER
+            tag = "price"
+            setPadding(0, 15, 0, 5)
         }
 
-        row.addView(
-            nameView,
-            LinearLayout.LayoutParams(
-                0,
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                1f
-            )
-        )
+        card.addView(priceView)
 
-        row.addView(
-            priceView,
-            LinearLayout.LayoutParams(
-                0,
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                1f
-            )
-        )
-
-        root.addView(row)
+        return card
     }
 
     private fun addSpace(
-        root: LinearLayout,
+        parent: LinearLayout,
         height: Int
     ) {
 
-        root.addView(
-            Space(this),
-            LinearLayout.LayoutParams(1, height)
+        val space = Space(this)
+
+        parent.addView(
+            space,
+            LinearLayout.LayoutParams(
+                1,
+                height
+            )
         )
+    }
+
+    private fun startPriceUpdates() {
+
+        thread {
+
+            while (true) {
+
+                try {
+
+                    val price = getGoldPrice()
+
+                    runOnUiThread {
+
+                        if (price > 0) {
+
+                            updatePrices(price)
+
+                        } else {
+
+                            updateText.text =
+                                "تعذر الحصول على السعر"
+                        }
+                    }
+
+                } catch (e: Exception) {
+
+                    runOnUiThread {
+
+                        updateText.text =
+                            "خطأ في الاتصال"
+                    }
+                }
+
+                Thread.sleep(updateInterval)
+            }
+        }
+    }
+
+    private fun getGoldPrice(): Double {
+
+        val url =
+            URL("https://api.gold-api.com/price/XAU")
+
+        val connection =
+            url.openConnection() as HttpURLConnection
+
+        connection.requestMethod = "GET"
+        connection.connectTimeout = 5000
+        connection.readTimeout = 5000
+
+        val response =
+            connection.inputStream
+                .bufferedReader()
+                .use {
+                    it.readText()
+                }
+
+        connection.disconnect()
+
+        val regex =
+            Regex("\"price\"\\s*:\\s*([0-9.]+)")
+
+        val match =
+            regex.find(response)
+
+        return match
+            ?.groupValues
+            ?.get(1)
+            ?.toDoubleOrNull()
+            ?: 0.0
+    }
+
+    private fun updatePrices(
+        goldPrice: Double
+    ) {
+
+        globalPriceText.text =
+            String.format(
+                Locale.US,
+                "$%,.2f / oz",
+                goldPrice
+            )
+
+        updateLocalPrice(goldPrice)
+
+        if (lastGoldPrice > 0) {
+
+            val difference =
+                goldPrice - lastGoldPrice
+
+            if (difference > 0) {
+
+                changeText.text =
+                    String.format(
+                        Locale.US,
+                        "▲ +%.2f",
+                        difference
+                    )
+
+                changeText.setTextColor(
+                    Color.rgb(60, 200, 110)
+                )
+
+            } else if (difference < 0) {
+
+                changeText.text =
+                    String.format(
+                        Locale.US,
+                        "▼ %.2f",
+                        difference
+                    )
+
+                changeText.setTextColor(
+                    Color.rgb(230, 70, 70)
+                )
+
+            } else {
+
+                changeText.text = "—"
+
+                changeText.setTextColor(
+                    Color.LTGRAY
+                )
+            }
+        }
+
+        lastGoldPrice = goldPrice
+
+        updateText.text =
+            "آخر تحديث: الآن"
+    }
+
+    private fun updateLocalPrice(
+        goldPrice: Double
+    ) {
+
+        if (goldPrice <= 0) {
+            return
+        }
+
+        val position =
+            karatSpinner.selectedItemPosition
+
+        val purity =
+            when (position) {
+                0 -> 0.999
+                1 -> 0.875
+                else -> 0.750
+            }
+
+        val gram24 =
+            (goldPrice * usdToEgp) / 31.1034768
+
+        val gramKarat =
+            gram24 * purity
+
+        selectedPriceText.text =
+            String.format(
+                Locale.US,
+                "%,.0f ج / جرام",
+                gramKarat
+            )
     }
 
     private fun createNotificationChannel() {
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
 
-            val channel = NotificationChannel(
-                channelId,
-                "GoldLive",
-                NotificationManager.IMPORTANCE_LOW
-            )
+            val channel =
+                NotificationChannel(
+                    channelId,
+                    "GoldLive",
+                    NotificationManager.IMPORTANCE_LOW
+                )
 
             channel.description =
                 "أسعار الذهب في شريط الإشعارات"
 
             val manager =
-                getSystemService(Context.NOTIFICATION_SERVICE)
-                        as NotificationManager
+                getSystemService(
+                    Context.NOTIFICATION_SERVICE
+                ) as NotificationManager
 
             manager.createNotificationChannel(channel)
         }
     }
 
-    private fun loadGoldPrice() {
+    private fun showGoldNotification(
+        goldPrice: Double
+    ) {
 
-        updateView.text = "جاري تحديث السعر..."
-
-        thread {
-
-            try {
-
-                val url = URL("https://api.gold-api.com/price/XAU")
-
-                val connection =
-                    url.openConnection() as HttpURLConnection
-
-                connection.requestMethod = "GET"
-                connection.connectTimeout = 10000
-                connection.readTimeout = 10000
-
-                val response =
-                    connection.inputStream
-                        .bufferedReader()
-                        .use { it.readText() }
-
-                val priceRegex =
-                    Regex("\"price\"\\s*:\\s*([0-9.]+)")
-
-                val match =
-                    priceRegex.find(response)
-
-                if (match != null) {
-
-                    val price =
-                        match.groupValues[1].toDouble()
-
-                    runOnUiThread {
-
-                        globalPrice = price
-
-                        globalPriceView.text =
-                            String.format(
-                                "$%,.2f",
-                                price
-                            )
-
-                        updateView.text =
-                            "تم تحديث السعر العالمي"
-                    }
-
-                } else {
-
-                    runOnUiThread {
-
-                        globalPriceView.text =
-                            "تعذر قراءة السعر"
-
-                        updateView.text =
-                            "مصدر الأسعار لم يُرجع السعر المتوقع"
-                    }
-                }
-
-                connection.disconnect()
-
-            } catch (e: Exception) {
-
-                runOnUiThread {
-
-                    globalPriceView.text =
-                        "غير متاح"
-
-                    updateView.text =
-                        "تعذر الاتصال بالإنترنت"
-                }
-            }
-        }
-    }
-
-    private fun showGoldNotification() {
-
-        if (globalPrice <= 0) {
-
+        if (goldPrice <= 0) {
             Toast.makeText(
                 this,
-                "انتظر حتى يتم تحديث السعر العالمي",
+                "انتظر تحميل السعر أولًا",
                 Toast.LENGTH_SHORT
             ).show()
 
             return
         }
+
+        val position =
+            karatSpinner.selectedItemPosition
+
+        val karat =
+            when (position) {
+                0 -> 24
+                1 -> 21
+                else -> 18
+            }
+
+        val purity =
+            when (karat) {
+                24 -> 0.999
+                21 -> 0.875
+                else -> 0.750
+            }
+
+        val gram24 =
+            (goldPrice * usdToEgp) / 31.1034768
+
+        val localPrice =
+            gram24 * purity
 
         val notification =
             NotificationCompat.Builder(
@@ -425,25 +489,31 @@ class MainActivity : Activity() {
                 .setSmallIcon(
                     android.R.drawable.ic_dialog_info
                 )
-                .setContentTitle("GoldLive")
+                .setContentTitle(
+                    "🟡 GoldLive"
+                )
                 .setContentText(
-                    "🌍 $%.2f | 🇪🇬 عيار %s".format(
-                        globalPrice,
-                        selectedKarat
+                    String.format(
+                        Locale.US,
+                        "🌍 $%,.2f | 🇪🇬 %dK %,.0f ج",
+                        goldPrice,
+                        karat,
+                        localPrice
                     )
                 )
                 .setOngoing(true)
+                .setOnlyAlertOnce(true)
                 .setPriority(
                     NotificationCompat.PRIORITY_LOW
-                )
-                .setCategory(
-                    NotificationCompat.CATEGORY_STATUS
                 )
                 .build()
 
         NotificationManagerCompat
             .from(this)
-            .notify(1001, notification)
+            .notify(
+                1001,
+                notification
+            )
 
         Toast.makeText(
             this,
