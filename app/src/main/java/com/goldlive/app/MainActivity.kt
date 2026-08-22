@@ -14,6 +14,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.view.Gravity
+import android.view.View
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Button
@@ -23,6 +24,8 @@ import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
@@ -62,26 +65,17 @@ class MainActivity : Activity() {
 
     private val updateTask =
         object : Runnable {
-
             override fun run() {
-
                 loadPrices()
-
-                handler.postDelayed(
-                    this,
-                    2000
-                )
+                handler.postDelayed(this, 2000)
             }
         }
 
-    override fun onCreate(
-        savedInstanceState: Bundle?
-    ) {
+    override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         createNotificationChannel()
         requestNotificationPermission()
-
         createInterface()
 
         handler.post(updateTask)
@@ -95,12 +89,11 @@ class MainActivity : Activity() {
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
 
-            val channel =
-                NotificationChannel(
-                    channelId,
-                    "GoldLive",
-                    NotificationManager.IMPORTANCE_LOW
-                )
+            val channel = NotificationChannel(
+                channelId,
+                "GoldLive",
+                NotificationManager.IMPORTANCE_LOW
+            )
 
             channel.description =
                 "أسعار الذهب في شريط الإشعارات"
@@ -108,13 +101,10 @@ class MainActivity : Activity() {
             channel.setShowBadge(false)
 
             val manager =
-                getSystemService(
-                    Context.NOTIFICATION_SERVICE
-                ) as NotificationManager
+                getSystemService(Context.NOTIFICATION_SERVICE)
+                        as NotificationManager
 
-            manager.createNotificationChannel(
-                channel
-            )
+            manager.createNotificationChannel(channel)
         }
     }
 
@@ -132,10 +122,7 @@ class MainActivity : Activity() {
                     Manifest.permission.POST_NOTIFICATIONS
                 )
 
-            if (
-                permission !=
-                PackageManager.PERMISSION_GRANTED
-            ) {
+            if (permission != PackageManager.PERMISSION_GRANTED) {
 
                 ActivityCompat.requestPermissions(
                     this,
@@ -154,18 +141,12 @@ class MainActivity : Activity() {
 
     private fun createInterface() {
 
-        val root =
-            LinearLayout(this)
+        val root = LinearLayout(this)
 
-        root.orientation =
-            LinearLayout.VERTICAL
+        root.orientation = LinearLayout.VERTICAL
 
         root.setBackgroundColor(
-            Color.rgb(
-                242,
-                230,
-                194
-            )
+            Color.rgb(242, 230, 194)
         )
 
         root.setPadding(
@@ -175,21 +156,18 @@ class MainActivity : Activity() {
             16
         )
 
-        val scroll =
-            ScrollView(this)
+        val scroll = ScrollView(this)
 
-        val content =
-            LinearLayout(this)
+        val content = LinearLayout(this)
 
         content.orientation =
             LinearLayout.VERTICAL
 
-        // -----------------------------------------------------
+        // =====================================================
         // HEADER
-        // -----------------------------------------------------
+        // =====================================================
 
-        val header =
-            LinearLayout(this)
+        val header = LinearLayout(this)
 
         header.orientation =
             LinearLayout.VERTICAL
@@ -208,43 +186,27 @@ class MainActivity : Activity() {
             GradientDrawable()
 
         headerBackground.setColor(
-            Color.rgb(
-                55,
-                40,
-                12
-            )
+            Color.rgb(55, 40, 12)
         )
 
         headerBackground.setStroke(
             2,
-            Color.rgb(
-                212,
-                175,
-                55
-            )
+            Color.rgb(212, 175, 55)
         )
 
-        headerBackground.cornerRadius =
-            30f
+        headerBackground.cornerRadius = 30f
 
         header.background =
             headerBackground
 
-        val title =
-            TextView(this)
+        val title = TextView(this)
 
-        title.text =
-            "GOLD LIVE"
+        title.text = "GOLD LIVE"
 
-        title.textSize =
-            32f
+        title.textSize = 32f
 
         title.setTextColor(
-            Color.rgb(
-                255,
-                215,
-                70
-            )
+            Color.rgb(255, 215, 70)
         )
 
         title.gravity =
@@ -263,21 +225,15 @@ class MainActivity : Activity() {
             )
         )
 
-        val subtitle =
-            TextView(this)
+        val subtitle = TextView(this)
 
         subtitle.text =
             "أسعار الذهب لحظة بلحظة"
 
-        subtitle.textSize =
-            15f
+        subtitle.textSize = 15f
 
         subtitle.setTextColor(
-            Color.rgb(
-                240,
-                220,
-                170
-            )
+            Color.rgb(240, 220, 170)
         )
 
         subtitle.gravity =
@@ -306,22 +262,17 @@ class MainActivity : Activity() {
             )
         )
 
-        addGap(
-            content,
-            14
-        )
+        addGap(content, 14)
 
-        // -----------------------------------------------------
-        // GLOBAL GOLD CARD
-        // -----------------------------------------------------
+        // =====================================================
+        // GLOBAL GOLD
+        // =====================================================
 
         val globalCard =
             createCard()
 
         globalCard.addView(
-            createTitle(
-                "🌍 الذهب العالمي"
-            )
+            createTitle("🌍 الذهب العالمي")
         )
 
         globalPriceText =
@@ -330,15 +281,10 @@ class MainActivity : Activity() {
         globalPriceText.text =
             "جاري التحميل..."
 
-        globalPriceText.textSize =
-            34f
+        globalPriceText.textSize = 34f
 
         globalPriceText.setTextColor(
-            Color.rgb(
-                150,
-                105,
-                5
-            )
+            Color.rgb(150, 105, 5)
         )
 
         globalPriceText.gravity =
@@ -370,8 +316,7 @@ class MainActivity : Activity() {
         ounceLabel.text =
             "USD / Troy Ounce"
 
-        ounceLabel.textSize =
-            13f
+        ounceLabel.textSize = 13f
 
         ounceLabel.setTextColor(
             Color.GRAY
@@ -379,13 +324,6 @@ class MainActivity : Activity() {
 
         ounceLabel.gravity =
             Gravity.CENTER
-
-        ounceLabel.setPadding(
-            0,
-            0,
-            0,
-            8
-        )
 
         globalCard.addView(
             ounceLabel,
@@ -403,22 +341,17 @@ class MainActivity : Activity() {
             )
         )
 
-        addGap(
-            content,
-            12
-        )
+        addGap(content, 12)
 
-        // -----------------------------------------------------
-        // DOLLAR CARD
-        // -----------------------------------------------------
+        // =====================================================
+        // DOLLAR
+        // =====================================================
 
         val dollarCard =
             createCard()
 
         dollarCard.addView(
-            createTitle(
-                "💵 سعر الدولار"
-            )
+            createTitle("💵 سعر الدولار")
         )
 
         dollarPriceText =
@@ -427,15 +360,10 @@ class MainActivity : Activity() {
         dollarPriceText.text =
             "-- جنيه"
 
-        dollarPriceText.textSize =
-            28f
+        dollarPriceText.textSize = 28f
 
         dollarPriceText.setTextColor(
-            Color.rgb(
-                125,
-                85,
-                5
-            )
+            Color.rgb(125, 85, 5)
         )
 
         dollarPriceText.gravity =
@@ -469,22 +397,17 @@ class MainActivity : Activity() {
             )
         )
 
-        addGap(
-            content,
-            12
-        )
+        addGap(content, 12)
 
-        // -----------------------------------------------------
-        // EGYPT GOLD CARD
-        // -----------------------------------------------------
+        // =====================================================
+        // EGYPT GOLD
+        // =====================================================
 
         val egyptCard =
             createCard()
 
         egyptCard.addView(
-            createTitle(
-                "🇪🇬 سعر الذهب في مصر"
-            )
+            createTitle("🇪🇬 سعر الذهب في مصر")
         )
 
         spinner =
@@ -508,16 +431,12 @@ class MainActivity : Activity() {
             android.R.layout.simple_spinner_dropdown_item
         )
 
-        spinner.adapter =
-            adapter
+        spinner.adapter = adapter
 
-        spinner.setSelection(
-            1
-        )
+        spinner.setSelection(1)
 
         spinner.onItemSelectedListener =
-            object :
-                AdapterView.OnItemSelectedListener {
+            object : AdapterView.OnItemSelectedListener {
 
                 override fun onNothingSelected(
                     parent: AdapterView<*>?
@@ -526,7 +445,7 @@ class MainActivity : Activity() {
 
                 override fun onItemSelected(
                     parent: AdapterView<*>?,
-                    view: android.view.View?,
+                    view: View?,
                     position: Int,
                     id: Long
                 ) {
@@ -539,7 +458,6 @@ class MainActivity : Activity() {
                         }
 
                     updateLocalPrice()
-
                     updateNotification()
                 }
             }
@@ -558,15 +476,10 @@ class MainActivity : Activity() {
         localPriceText.text =
             "-- ج / جرام"
 
-        localPriceText.textSize =
-            31f
+        localPriceText.textSize = 31f
 
         localPriceText.setTextColor(
-            Color.rgb(
-                125,
-                85,
-                5
-            )
+            Color.rgb(125, 85, 5)
         )
 
         localPriceText.gravity =
@@ -600,14 +513,11 @@ class MainActivity : Activity() {
             )
         )
 
-        addGap(
-            content,
-            12
-        )
+        addGap(content, 12)
 
-        // -----------------------------------------------------
+        // =====================================================
         // STATUS
-        // -----------------------------------------------------
+        // =====================================================
 
         statusText =
             TextView(this)
@@ -615,8 +525,7 @@ class MainActivity : Activity() {
         statusText.text =
             "● جاري الاتصال بمصدر الأسعار..."
 
-        statusText.textSize =
-            13f
+        statusText.textSize = 13f
 
         statusText.setTextColor(
             Color.GRAY
@@ -640,9 +549,9 @@ class MainActivity : Activity() {
             )
         )
 
-        // -----------------------------------------------------
+        // =====================================================
         // NOTIFICATION BUTTON
-        // -----------------------------------------------------
+        // =====================================================
 
         notificationButton =
             Button(this)
@@ -650,8 +559,7 @@ class MainActivity : Activity() {
         notificationButton.text =
             "🔔 تفعيل شريط الأسعار"
 
-        notificationButton.textSize =
-            15f
+        notificationButton.textSize = 15f
 
         notificationButton.setTextColor(
             Color.WHITE
@@ -666,24 +574,15 @@ class MainActivity : Activity() {
             GradientDrawable()
 
         buttonBackground.setColor(
-            Color.rgb(
-                125,
-                88,
-                8
-            )
+            Color.rgb(125, 88, 8)
         )
 
         buttonBackground.setStroke(
             1,
-            Color.rgb(
-                220,
-                180,
-                60
-            )
+            Color.rgb(220, 180, 60)
         )
 
-        buttonBackground.cornerRadius =
-            28f
+        buttonBackground.cornerRadius = 28f
 
         notificationButton.background =
             buttonBackground
@@ -729,14 +628,11 @@ class MainActivity : Activity() {
             )
         )
 
-        addGap(
-            content,
-            15
-        )
+        addGap(content, 15)
 
-        // -----------------------------------------------------
+        // =====================================================
         // INFO
-        // -----------------------------------------------------
+        // =====================================================
 
         val info =
             TextView(this)
@@ -748,15 +644,10 @@ class MainActivity : Activity() {
             "• أسعار عيار 24 و21 و18\n" +
             "• شريط أسعار اختياري"
 
-        info.textSize =
-            13f
+        info.textSize = 13f
 
         info.setTextColor(
-            Color.rgb(
-                105,
-                90,
-                55
-            )
+            Color.rgb(105, 90, 55)
         )
 
         info.gravity =
@@ -777,9 +668,7 @@ class MainActivity : Activity() {
             )
         )
 
-        scroll.addView(
-            content
-        )
+        scroll.addView(content)
 
         root.addView(
             scroll,
@@ -789,17 +678,14 @@ class MainActivity : Activity() {
             )
         )
 
-        setContentView(
-            root
-        )
+        setContentView(root)
     }
 
     // =========================================================
     // CARD
     // =========================================================
 
-    private fun createCard():
-        LinearLayout {
+    private fun createCard(): LinearLayout {
 
         val card =
             LinearLayout(this)
@@ -821,24 +707,15 @@ class MainActivity : Activity() {
             GradientDrawable()
 
         background.setColor(
-            Color.rgb(
-                255,
-                250,
-                235
-            )
+            Color.rgb(255, 250, 235)
         )
 
         background.setStroke(
             2,
-            Color.rgb(
-                205,
-                165,
-                55
-            )
+            Color.rgb(205, 165, 55)
         )
 
-        background.cornerRadius =
-            28f
+        background.cornerRadius = 28f
 
         card.background =
             background
@@ -847,7 +724,7 @@ class MainActivity : Activity() {
     }
 
     // =========================================================
-    // CARD TITLE
+    // TITLE
     // =========================================================
 
     private fun createTitle(
@@ -857,18 +734,12 @@ class MainActivity : Activity() {
         val title =
             TextView(this)
 
-        title.text =
-            text
+        title.text = text
 
-        title.textSize =
-            18f
+        title.textSize = 18f
 
         title.setTextColor(
-            Color.rgb(
-                70,
-                55,
-                20
-            )
+            Color.rgb(70, 55, 20)
         )
 
         title.gravity =
@@ -900,9 +771,6 @@ class MainActivity : Activity() {
 
         val gap =
             TextView(this)
-
-        gap.text =
-            ""
 
         parent.addView(
             gap,
@@ -944,20 +812,89 @@ class MainActivity : Activity() {
                     false
 
                 val response =
-                    connection
-                        .inputStream
+                    connection.inputStream
                         .bufferedReader()
                         .use {
                             it.readText()
                         }
 
                 val json =
-                    JSONObject(
-                        response
-                    )
+                    JSONObject(response)
 
                 if (
                     !json.optBoolean(
                         "success",
                         false
-               
+                    )
+                ) {
+                    throw Exception(
+                        "API returned success=false"
+                    )
+                }
+
+                val newOunce =
+                    json.optDouble(
+                        "ounceUsd",
+                        0.0
+                    )
+
+                val newDollar =
+                    json.optDouble(
+                        "usdEgp",
+                        0.0
+                    )
+
+                val new24 =
+                    json.optDouble(
+                        "gram24",
+                        0.0
+                    )
+
+                val new21 =
+                    json.optDouble(
+                        "gram21",
+                        0.0
+                    )
+
+                val new18 =
+                    json.optDouble(
+                        "gram18",
+                        0.0
+                    )
+
+                if (
+                    newOunce <= 0.0 ||
+                    newDollar <= 0.0 ||
+                    new24 <= 0.0 ||
+                    new21 <= 0.0 ||
+                    new18 <= 0.0
+                ) {
+                    throw Exception(
+                        "Invalid price data"
+                    )
+                }
+
+                runOnUiThread {
+
+                    ounceUsd =
+                        newOunce
+
+                    usdEgp =
+                        newDollar
+
+                    gram24 =
+                        new24
+
+                    gram21 =
+                        new21
+
+                    gram18 =
+                        new18
+
+                    globalPriceText.text =
+                        "$" +
+                            numberFormat.format(
+                                ounceUsd
+                            )
+
+                 
