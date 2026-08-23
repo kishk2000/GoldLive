@@ -711,41 +711,42 @@ class MainActivity : Activity() {
         )
 
         spinner =
-            Spinner(this)
+    Spinner(this)
 
-        val karatNames =
-            arrayOf(
-                "عيار 24",
-                "عيار 21",
-                "عيار 18",
-                "عيار 14"
-            )
+val karatNames =
+    arrayOf(
+        "عيار 24",
+        "عيار 21",
+        "عيار 18",
+        "عيار 14"
+    )
 
-        val adapter =
-            ArrayAdapter(
-                this,
-                android.R.layout.simple_spinner_item,
-                karatNames
-            )
+val adapter =
+    ArrayAdapter(
+        this,
+        android.R.layout.simple_spinner_item,
+        karatNames
+    )
 
-        adapter.setDropDownViewResource(
-            android.R.layout.simple_spinner_dropdown_item
-        )
+adapter.setDropDownViewResource(
+    android.R.layout.simple_spinner_dropdown_item
+)
 
-        spinner.adapter =
-            adapter
+spinner.adapter =
+    adapter
 
-        spinner.setSelection(
-            1
-        )
+spinner.setSelection(
+    1,
+    false
+)
 
-        selectorCard.addView(
-            spinner,
-            LinearLayout.LayoutParams(
-                -1,
-                52
-            )
-        )
+selectorCard.addView(
+    spinner,
+    LinearLayout.LayoutParams(
+        -1,
+        52
+    )
+)
 
         selectedKaratText =
             createText(
