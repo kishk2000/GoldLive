@@ -713,6 +713,21 @@ class MainActivity : Activity() {
         spinner =
     Spinner(this)
 
+spinner.setBackgroundColor(
+    Color.rgb(
+        241,
+        245,
+        249
+    )
+)
+
+spinner.setPadding(
+    18,
+    0,
+    18,
+    0
+)
+
 val karatNames =
     arrayOf(
         "عيار 24",
