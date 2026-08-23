@@ -715,29 +715,16 @@ class MainActivity : Activity() {
 
 spinner.setBackgroundColor(
     Color.rgb(
-val spinnerBackground =
-    GradientDrawable().apply {
+spinner =
+    Spinner(this)
 
-        setColor(
-            Color.rgb(
-                241,
-                245,
-                249
-            )
-        )
-
-        setStroke(
-            2,
-            gold
-        )
-
-        cornerRadius =
-            14f *
-            resources.displayMetrics.density
-    }
-
-spinner.background =
-    spinnerBackground
+spinner.setBackgroundColor(
+    Color.rgb(
+        241,
+        245,
+        249
+    )
+)
 
 spinner.setPadding(
     18,
