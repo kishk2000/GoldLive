@@ -1337,12 +1337,12 @@ class MainActivity : Activity() {
         // =====================================================
 
         scroll.addView(
-            content,
-            ScrollView.LayoutParams(
-                -1,
-                -2
-            )
-        )
+    content,
+    android.view.ViewGroup.LayoutParams(
+        -1,
+        -2
+    )
+)
 
         root.addView(
             scroll,
