@@ -1653,32 +1653,37 @@ selectorCard.addView(
     // UPDATE LOCAL PRICE
     // =========================================================
 
-    private fun updateLocalPrice() {
+private fun updateLocalPrice() {
 
-        val price =
-            when (selectedKarat) {
-                24 -> gram24
-                21 -> gram21
-                18 -> gram18
-                14 -> gram14
-                else -> gram21
-            }
-
-        if (::localOunceText.isInitialized) {
-            localOunceText.text =
-                formatNumber(localOunce)
+    val price =
+        when (selectedKarat) {
+            24 -> gram24
+            21 -> gram21
+            18 -> gram18
+            14 -> gram14
+            else -> gram21
         }
 
-        if (::goldCoinText.isInitialized) {
-            goldCoinText.text =
-                formatNumber(goldCoin)
-        }
-
-        if (::selectedKaratText.isInitialized) {
-            selectedKaratText.text =
-                "السعر الحالي لعيار $selectedKarat"
-        }
+    if (::localOunceText.isInitialized) {
+        localOunceText.text =
+            formatNumber(localOunce)
     }
+
+    if (::goldCoinText.isInitialized) {
+        goldCoinText.text =
+            formatNumber(goldCoin)
+    }
+
+    if (::selectedKaratText.isInitialized) {
+        selectedKaratText.text =
+            "السعر الحالي لعيار $selectedKarat"
+    }
+
+    if (::heroPriceText.isInitialized) {
+        heroPriceText.text =
+            formatNumber(price)
+    }
+}
 
     // =========================================================
     // UPDATE PRICES TABLE
