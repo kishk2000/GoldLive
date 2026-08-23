@@ -1,14 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- الإنترنت لجلب أسعار الذهب -->
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- إشعارات Android 13+ -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- تشغيل Foreground Service -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+
+    <!-- مطلوب لخدمة Data Sync على Android 14+ -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
 
     <application
         android:theme="@style/AppTheme"
         android:label="GoldLive"
-        android:allowBackup="true">
+        android:allowBackup="true"
+        android:supportsRtl="true">
 
+        <!-- الشاشة الرئيسية -->
         <activity
             android:name=".MainActivity"
             android:exported="true">
@@ -19,6 +30,14 @@
             </intent-filter>
 
         </activity>
+
+        <!-- خدمة تحديث الإشعار في الخلفية -->
+        <service
+            android:name=".GoldPriceService"
+            android:enabled="true"
+            android:exported="false"
+            android:stopWithTask="false"
+            android:foregroundServiceType="dataSync" />
 
     </application>
 
