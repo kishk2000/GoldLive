@@ -15,6 +15,7 @@ import android.os.Handler
 import android.os.Looper
 import android.view.Gravity
 import android.view.View
+import android.view.Window
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Button
@@ -26,11 +27,15 @@ import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
 import java.text.DecimalFormat
+import java.text.DecimalFormatSymbols
+import java.util.Locale
 import kotlin.concurrent.thread
 
 class MainActivity : Activity() {
@@ -91,23 +96,6 @@ class MainActivity : Activity() {
     private lateinit var localOunceText: TextView
     private lateinit var goldCoinText: TextView
 
-    private val numberFormat =
-        DecimalFormat("#,##0.00")
-
-    private val updateTask =
-        object : Runnable {
-
-            override fun run() {
-
-                loadPrices()
-
-                handler.postDelayed(
-                    this,
-                    2000L
-                )
-            }
-        }
-
     // =========================================================
     // COLORS
     // =========================================================
@@ -140,13 +128,6 @@ class MainActivity : Activity() {
             55
         )
 
-    private val goldLight =
-        Color.rgb(
-            229,
-            169,
-            60
-        )
-
     private val green =
         Color.rgb(
             34,
@@ -165,7 +146,39 @@ class MainActivity : Activity() {
         Color.WHITE
 
     private val grayText =
-        Color.GRAY
+        Color.rgb(
+            100,
+            116,
+            139
+        )
+
+    // =========================================================
+    // NUMBER FORMAT
+    // =========================================================
+
+    private val numberFormat =
+        DecimalFormat(
+            "#,##0.00",
+            DecimalFormatSymbols(Locale.US)
+        )
+
+    // =========================================================
+    // UPDATE TASK
+    // =========================================================
+
+    private val updateTask =
+        object : Runnable {
+
+            override fun run() {
+
+                loadPrices()
+
+                handler.postDelayed(
+                    this,
+                    2000L
+                )
+            }
+        }
 
     // =========================================================
     // ON CREATE
@@ -179,24 +192,7 @@ class MainActivity : Activity() {
             savedInstanceState
         )
 
-        WindowCompat.setDecorFitsSystemWindows(
-            window,
-            true
-        )
-
-        window.statusBarColor =
-            dark2
-
-        if (
-            Build.VERSION.SDK_INT >= 23
-        ) {
-
-            window.decorView.systemUiVisibility =
-                0
-        }
-
-        window.navigationBarColor =
-            cream
+        setupSystemBars()
 
         createNotificationChannel()
 
@@ -207,6 +203,45 @@ class MainActivity : Activity() {
         handler.post(
             updateTask
         )
+    }
+
+    // =========================================================
+    // SYSTEM BARS / SAFE AREA
+    // =========================================================
+
+    private fun setupSystemBars() {
+
+        WindowCompat.setDecorFitsSystemWindows(
+            window,
+            false
+        )
+
+        window.statusBarColor =
+            Color.TRANSPARENT
+
+        window.navigationBarColor =
+            Color.TRANSPARENT
+
+        if (
+            Build.VERSION.SDK_INT >=
+            Build.VERSION_CODES.Q
+        ) {
+
+            window.isNavigationBarContrastEnforced =
+                false
+        }
+
+        WindowCompat.getInsetsController(
+            window,
+            window.decorView
+        ).apply {
+
+            isAppearanceLightStatusBars =
+                false
+
+            isAppearanceLightNavigationBars =
+                true
+        }
     }
 
     // =========================================================
@@ -294,18 +329,64 @@ class MainActivity : Activity() {
             cream
         )
 
+        val initialPaddingLeft =
+            dp(12)
+
+        val initialPaddingTop =
+            dp(12)
+
+        val initialPaddingRight =
+            dp(12)
+
+        val initialPaddingBottom =
+            dp(12)
+
         root.setPadding(
-    12,
-    36,
-    12,
-    12
-)
+            initialPaddingLeft,
+            initialPaddingTop,
+            initialPaddingRight,
+            initialPaddingBottom
+        )
+
+        // =====================================================
+        // SAFE AREA
+        // =====================================================
+
+        ViewCompat.setOnApplyWindowInsetsListener(
+            root
+        ) { view, insets ->
+
+            val systemBars =
+                insets.getInsets(
+                    WindowInsetsCompat.Type.systemBars()
+                )
+
+            view.setPadding(
+                dp(12),
+                systemBars.top + dp(12),
+                dp(12),
+                systemBars.bottom + dp(12)
+            )
+
+            insets
+        }
+
+        ViewCompat.requestApplyInsets(
+            root
+        )
+
+        // =====================================================
+        // SCROLL
+        // =====================================================
 
         val scroll =
             ScrollView(this)
 
         scroll.isFillViewport =
             true
+
+        scroll.clipToPadding =
+            false
 
         scroll.setBackgroundColor(
             cream
@@ -316,6 +397,13 @@ class MainActivity : Activity() {
 
         content.orientation =
             LinearLayout.VERTICAL
+
+        content.setPadding(
+            0,
+            0,
+            0,
+            dp(8)
+        )
 
         // =====================================================
         // TOP HEADER
@@ -335,10 +423,10 @@ class MainActivity : Activity() {
             Gravity.CENTER_VERTICAL
 
         header.setPadding(
-            18,
-            16,
-            18,
-            16
+            dp(18),
+            dp(16),
+            dp(18),
+            dp(16)
         )
 
         val headerTexts =
@@ -421,7 +509,7 @@ class MainActivity : Activity() {
         )
 
         // =====================================================
-        // GLOBAL / DOLLAR MINI CARDS
+        // GLOBAL / DOLLAR CARDS
         // =====================================================
 
         val miniRow =
@@ -444,10 +532,10 @@ class MainActivity : Activity() {
             Gravity.CENTER
 
         globalCard.setPadding(
-            10,
-            14,
-            10,
-            14
+            dp(10),
+            dp(14),
+            dp(10),
+            dp(14)
         )
 
         globalCard.addView(
@@ -511,10 +599,10 @@ class MainActivity : Activity() {
             Gravity.CENTER
 
         dollarCard.setPadding(
-            10,
-            14,
-            10,
-            14
+            dp(10),
+            dp(14),
+            dp(10),
+            dp(14)
         )
 
         dollarCard.addView(
@@ -571,7 +659,8 @@ class MainActivity : Activity() {
             content,
             12
         )
-                // =====================================================
+
+        // =====================================================
         // HERO CARD
         // =====================================================
 
@@ -589,10 +678,10 @@ class MainActivity : Activity() {
             Gravity.CENTER
 
         hero.setPadding(
-            20,
-            22,
-            20,
-            22
+            dp(20),
+            dp(22),
+            dp(20),
+            dp(22)
         )
 
         hero.addView(
@@ -653,7 +742,7 @@ class MainActivity : Activity() {
 
         heroStatus.setPadding(
             0,
-            10,
+            dp(10),
             0,
             0
         )
@@ -690,10 +779,10 @@ class MainActivity : Activity() {
             LinearLayout.VERTICAL
 
         selectorCard.setPadding(
-            14,
-            14,
-            14,
-            14
+            dp(14),
+            dp(14),
+            dp(14),
+            dp(14)
         )
 
         selectorCard.addView(
@@ -710,56 +799,152 @@ class MainActivity : Activity() {
             8
         )
 
-spinner =
-    Spinner(this)
+        spinner =
+            Spinner(this)
 
-spinner.setBackgroundColor(
-    Color.rgb(
-        241,
-        245,
-        249
-    )
-)
+        val spinnerBackground =
+            GradientDrawable()
 
-spinner.setPadding(
-    18,
-    0,
-    18,
-    0
-)
-val karatNames =
-    arrayOf(
-        "عيار 24",
-        "عيار 21",
-        "عيار 18",
-        "عيار 14"
-    )
+        spinnerBackground.setColor(
+            dark2
+        )
 
-val adapter =
-    ArrayAdapter(
-        this,
-        android.R.layout.simple_spinner_item,
-        karatNames
-    )
+        spinnerBackground.setStroke(
+            dp(1),
+            gold
+        )
 
-adapter.setDropDownViewResource(
-    android.R.layout.simple_spinner_dropdown_item
-)
+        spinnerBackground.cornerRadius =
+            dp(12).toFloat()
 
-spinner.adapter =
-    adapter
+        spinner.background =
+            spinnerBackground
 
-spinner.setSelection(
-    1,
-    false
-)
-selectorCard.addView(
-    spinner,
-    LinearLayout.LayoutParams(
-        -1,
-        52
-    )
-)
+        spinner.setPadding(
+            dp(18),
+            0,
+            dp(18),
+            0
+        )
+
+        val karatNames =
+            arrayOf(
+                "عيار 24",
+                "عيار 21",
+                "عيار 18",
+                "عيار 14"
+            )
+
+        val adapter =
+            object :
+                ArrayAdapter<String>(
+                    this,
+                    android.R.layout.simple_spinner_item,
+                    karatNames
+                ) {
+
+                override fun getView(
+                    position: Int,
+                    convertView: View?,
+                    parent: android.view.ViewGroup
+                ): View {
+
+                    val textView =
+                        super.getView(
+                            position,
+                            convertView,
+                            parent
+                        ) as TextView
+
+                    textView.setTextColor(
+                        white
+                    )
+
+                    textView.textSize =
+                        14f
+
+                    textView.setTypeface(
+                        null,
+                        Typeface.BOLD
+                    )
+
+                    textView.gravity =
+                        Gravity.CENTER_VERTICAL
+
+                    textView.setPadding(
+                        dp(4),
+                        0,
+                        dp(4),
+                        0
+                    )
+
+                    return textView
+                }
+
+                override fun getDropDownView(
+                    position: Int,
+                    convertView: View?,
+                    parent: android.view.ViewGroup
+                ): View {
+
+                    val textView =
+                        super.getDropDownView(
+                            position,
+                            convertView,
+                            parent
+                        ) as TextView
+
+                    textView.setTextColor(
+                        white
+                    )
+
+                    textView.textSize =
+                        14f
+
+                    textView.setTypeface(
+                        null,
+                        Typeface.BOLD
+                    )
+
+                    textView.gravity =
+                        Gravity.CENTER_VERTICAL
+
+                    textView.setPadding(
+                        dp(18),
+                        dp(12),
+                        dp(18),
+                        dp(12)
+                    )
+
+                    val background =
+                        GradientDrawable()
+
+                    background.setColor(
+                        dark2
+                    )
+
+                    textView.background =
+                        background
+
+                    return textView
+                }
+            }
+
+        spinner.adapter =
+            adapter
+
+        spinner.setSelection(
+            1,
+            false
+        )
+
+        selectorCard.addView(
+            spinner,
+            LinearLayout.LayoutParams(
+                -1,
+                dp(52)
+            )
+        )
 
         selectedKaratText =
             createText(
@@ -774,7 +959,7 @@ selectorCard.addView(
 
         selectedKaratText.setPadding(
             0,
-            8,
+            dp(8),
             0,
             0
         )
@@ -828,7 +1013,7 @@ selectorCard.addView(
         )
 
         // =====================================================
-        // PRICES SECTION TITLE
+        // PRICES TITLE
         // =====================================================
 
         content.addView(
@@ -860,10 +1045,10 @@ selectorCard.addView(
             LinearLayout.HORIZONTAL
 
         tableHeader.setPadding(
-            14,
-            12,
-            14,
-            12
+            dp(14),
+            dp(12),
+            dp(14),
+            dp(12)
         )
 
         val headerKarat =
@@ -902,7 +1087,7 @@ selectorCard.addView(
             LinearLayout.LayoutParams(
                 0,
                 -2,
-                1f
+                1.2f
             )
         )
 
@@ -973,6 +1158,13 @@ selectorCard.addView(
         statusText.gravity =
             Gravity.CENTER
 
+        statusText.setPadding(
+            dp(8),
+            dp(4),
+            dp(8),
+            dp(4)
+        )
+
         content.addView(
             statusText,
             LinearLayout.LayoutParams(
@@ -1019,21 +1211,21 @@ selectorCard.addView(
         )
 
         notificationBackground.setStroke(
-            2,
+            dp(2),
             gold
         )
 
         notificationBackground.cornerRadius =
-            22f
+            dp(22).toFloat()
 
         notificationButton.background =
             notificationBackground
 
         notificationButton.setPadding(
-            10,
-            4,
-            10,
-            4
+            dp(10),
+            dp(4),
+            dp(10),
+            dp(4)
         )
 
         notificationButton.setOnClickListener {
@@ -1075,7 +1267,7 @@ selectorCard.addView(
             notificationButton,
             LinearLayout.LayoutParams(
                 -1,
-                52
+                dp(52)
             )
         )
 
@@ -1083,7 +1275,8 @@ selectorCard.addView(
             content,
             15
         )
-                // =====================================================
+
+        // =====================================================
         // LOCAL OUNCE CARD
         // =====================================================
 
@@ -1101,10 +1294,10 @@ selectorCard.addView(
             Gravity.CENTER_VERTICAL
 
         localOunceCard.setPadding(
-            14,
-            14,
-            14,
-            14
+            dp(14),
+            dp(14),
+            dp(14),
+            dp(14)
         )
 
         val localOunceTitle =
@@ -1195,10 +1388,10 @@ selectorCard.addView(
             Gravity.CENTER_VERTICAL
 
         goldCoinCard.setPadding(
-            14,
-            14,
-            14,
-            14
+            dp(14),
+            dp(14),
+            dp(14),
+            dp(14)
         )
 
         val goldCoinTitle =
@@ -1286,10 +1479,10 @@ selectorCard.addView(
             LinearLayout.VERTICAL
 
         infoCard.setPadding(
-            16,
-            16,
-            16,
-            16
+            dp(16),
+            dp(16),
+            dp(16),
+            dp(16)
         )
 
         infoCard.addView(
@@ -1313,10 +1506,10 @@ selectorCard.addView(
         val infoText =
             createText(
                 "• تحديث تلقائي للأسعار\n" +
-                "• الأونصة العالمية بالدولار\n" +
-                "• سعر الدولار مقابل الجنيه\n" +
-                "• أسعار عيارات الذهب المختلفة\n" +
-                "• شريط أسعار اختياري",
+                    "• الأونصة العالمية بالدولار\n" +
+                    "• سعر الدولار مقابل الجنيه\n" +
+                    "• أسعار عيارات الذهب المختلفة\n" +
+                    "• شريط أسعار اختياري",
                 12f,
                 Color.rgb(
                     226,
@@ -1347,16 +1540,16 @@ selectorCard.addView(
         )
 
         // =====================================================
-        // ADD CONTENT TO SCROLL
+        // ADD CONTENT
         // =====================================================
 
         scroll.addView(
-    content,
-    android.view.ViewGroup.LayoutParams(
-        -1,
-        -2
-    )
-)
+            content,
+            android.view.ViewGroup.LayoutParams(
+                -1,
+                -2
+            )
+        )
 
         root.addView(
             scroll,
@@ -1370,6 +1563,20 @@ selectorCard.addView(
         setContentView(
             root
         )
+    }
+
+    // =========================================================
+    // DP
+    // =========================================================
+
+    private fun dp(
+        value: Int
+    ): Int {
+
+        return (
+            value *
+                resources.displayMetrics.density
+            ).toInt()
     }
 
     // =========================================================
@@ -1393,13 +1600,13 @@ selectorCard.addView(
         )
 
         drawable.setStroke(
-            1,
+            dp(1),
             strokeColor
         )
 
         drawable.cornerRadius =
             radius *
-            resources.displayMetrics.density
+                resources.displayMetrics.density
 
         layout.background =
             drawable
@@ -1461,7 +1668,7 @@ selectorCard.addView(
             gap,
             LinearLayout.LayoutParams(
                 1,
-                height
+                dp(height)
             )
         )
     }
@@ -1481,7 +1688,7 @@ selectorCard.addView(
         parent.addView(
             gap,
             LinearLayout.LayoutParams(
-                width,
+                dp(width),
                 1
             )
         )
@@ -1662,41 +1869,52 @@ selectorCard.addView(
 
         updateNotification()
     }
-        // =========================================================
+
+    // =========================================================
     // UPDATE LOCAL PRICE
     // =========================================================
 
-private fun updateLocalPrice() {
+    private fun updateLocalPrice() {
 
-    val price =
-        when (selectedKarat) {
-            24 -> gram24
-            21 -> gram21
-            18 -> gram18
-            14 -> gram14
-            else -> gram21
+        val price =
+            when (selectedKarat) {
+                24 -> gram24
+                21 -> gram21
+                18 -> gram18
+                14 -> gram14
+                else -> gram21
+            }
+
+        if (::localOunceText.isInitialized) {
+
+            localOunceText.text =
+                formatNumber(
+                    localOunce
+                )
         }
 
-    if (::localOunceText.isInitialized) {
-        localOunceText.text =
-            formatNumber(localOunce)
-    }
+        if (::goldCoinText.isInitialized) {
 
-    if (::goldCoinText.isInitialized) {
-        goldCoinText.text =
-            formatNumber(goldCoin)
-    }
+            goldCoinText.text =
+                formatNumber(
+                    goldCoin
+                )
+        }
 
-    if (::selectedKaratText.isInitialized) {
-        selectedKaratText.text =
-            "السعر الحالي لعيار $selectedKarat"
-    }
+        if (::selectedKaratText.isInitialized) {
 
-    if (::heroPriceText.isInitialized) {
-        heroPriceText.text =
-            formatNumber(price)
+            selectedKaratText.text =
+                "السعر الحالي لعيار $selectedKarat"
+        }
+
+        if (::heroPriceText.isInitialized) {
+
+            heroPriceText.text =
+                formatNumber(
+                    price
+                )
+        }
     }
-}
 
     // =========================================================
     // UPDATE PRICES TABLE
@@ -1778,10 +1996,10 @@ private fun updateLocalPrice() {
             Gravity.CENTER_VERTICAL
 
         row.setPadding(
-            14,
-            12,
-            14,
-            12
+            dp(14),
+            dp(12),
+            dp(14),
+            dp(12)
         )
 
         val karatText =
@@ -1831,7 +2049,7 @@ private fun updateLocalPrice() {
             LinearLayout.LayoutParams(
                 0,
                 -2,
-                1f
+                1.2f
             )
         )
 
@@ -1878,11 +2096,13 @@ private fun updateLocalPrice() {
     ): String {
 
         if (value <= 0.0) {
+
             return "--"
         }
 
-        return DecimalFormat("#,##0.00")
-            .format(value)
+        return numberFormat.format(
+            value
+        )
     }
 
     // =========================================================
@@ -1892,14 +2112,19 @@ private fun updateLocalPrice() {
     private fun updateNotification() {
 
         if (!notificationEnabled) {
+
             return
         }
 
         if (gram21 <= 0.0) {
+
             return
         }
 
-        if (Build.VERSION.SDK_INT >= 33) {
+        if (
+            Build.VERSION.SDK_INT >=
+            33
+        ) {
 
             val permission =
                 ActivityCompat.checkSelfPermission(
@@ -1911,6 +2136,7 @@ private fun updateLocalPrice() {
                 permission !=
                 PackageManager.PERMISSION_GRANTED
             ) {
+
                 return
             }
         }
@@ -1926,8 +2152,8 @@ private fun updateLocalPrice() {
 
         val notificationText =
             "عيار $selectedKarat: " +
-            formatNumber(price) +
-            " جنيه / جرام"
+                formatNumber(price) +
+                " جنيه / جرام"
 
         val notification =
             NotificationCompat.Builder(
