@@ -1,9 +1,9 @@
 package com.goldlive.app
 
+import android.Manifest
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
-import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
@@ -19,12 +19,14 @@ import java.net.URL
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
 import java.util.Locale
-import java.util.concurrent.Executors
-import java.util.concurrent.ScheduledExecutorService
-import java.util.concurrent.TimeUnit
+import kotlin.concurrent.thread
 import kotlin.math.round
 
 class GoldPriceService : Service() {
+
+    // =========================================================
+    // CONFIG
+    // =========================================================
 
     private val apiUrl =
         "https://goldlive-api.tonetone200060.workers.dev/"
@@ -35,9 +37,31 @@ class GoldPriceService : Service() {
     private val notificationId =
         1001
 
-    private val executor:
-        ScheduledExecutorService =
-        Executors.newSingleThreadScheduledExecutor()
+    private val updateInterval =
+        2000L
+
+    // =========================================================
+    // STATE
+    // =========================================================
+
+    @Volatile
+    private var running =
+        false
+
+    private var workerThread:
+        Thread? = null
+
+    private val preferences by lazy {
+
+        getSharedPreferences(
+            "gold_live_settings",
+            Context.MODE_PRIVATE
+        )
+    }
+
+    // =========================================================
+    // NUMBER FORMAT
+    // =========================================================
 
     private val numberFormat =
         DecimalFormat(
@@ -45,20 +69,9 @@ class GoldPriceService : Service() {
             DecimalFormatSymbols(Locale.US)
         )
 
-    private var selectedKarat =
-        21
-
-    private var gram24 =
-        0.0
-
-    private var gram21 =
-        0.0
-
-    private var gram18 =
-        0.0
-
-    private var gram14 =
-        0.0
+    // =========================================================
+    // ON CREATE
+    // =========================================================
 
     override fun onCreate() {
 
@@ -66,72 +79,152 @@ class GoldPriceService : Service() {
 
         createNotificationChannel()
 
-        loadSelectedKarat()
+        /*
+         * مهم جدًا:
+         * يجب استدعاء startForeground بسرعة بعد تشغيل الخدمة.
+         */
 
-        // يجب أن يصبح Foreground Service مباشرة
-        // قبل تنفيذ أي عمل طويل.
         startForeground(
             notificationId,
-            createNotification(
-                "جاري تحديث السعر..."
-            )
+            createInitialNotification()
         )
 
-        startPriceUpdates()
+        running =
+            true
+
+        startWorker()
     }
 
     // =========================================================
-    // START PRICE UPDATES
+    // START COMMAND
     // =========================================================
 
-    private fun startPriceUpdates() {
+    override fun onStartCommand(
+        intent: Intent?,
+        flags: Int,
+        startId: Int
+    ): Int {
 
-        executor.scheduleWithFixedDelay(
-            {
+        /*
+         * START_STICKY:
+         * إذا أوقف Android الخدمة بسبب ضغط الذاكرة،
+         * سيحاول إعادة تشغيلها.
+         */
 
-                loadPrices()
+        return START_STICKY
+    }
 
-            },
-            0,
-            2,
-            TimeUnit.SECONDS
+    // =========================================================
+    // INITIAL NOTIFICATION
+    // =========================================================
+
+    private fun createInitialNotification():
+        Notification {
+
+        return NotificationCompat.Builder(
+            this,
+            channelId
         )
+            .setSmallIcon(
+                android.R.drawable.ic_dialog_info
+            )
+            .setContentTitle(
+                "GOLD"
+            )
+            .setContentText(
+                "جاري تحديث أسعار الذهب..."
+            )
+            .setStyle(
+                NotificationCompat.BigTextStyle()
+                    .bigText(
+                        "جاري تحديث أسعار الذهب..."
+                    )
+            )
+            .setOngoing(
+                true
+            )
+            .setAutoCancel(
+                false
+            )
+            .setOnlyAlertOnce(
+                true
+            )
+            .setSilent(
+                true
+            )
+            .setShowWhen(
+                false
+            )
+            .setPriority(
+                NotificationCompat.PRIORITY_LOW
+            )
+            .build()
     }
 
     // =========================================================
-    // LOAD SELECTED KARAT
+    // START WORKER
     // =========================================================
 
-    private fun loadSelectedKarat() {
+    private fun startWorker() {
 
-        val preferences =
-            getSharedPreferences(
-                "gold_live_settings",
-                Context.MODE_PRIVATE
-            )
+        if (
+            workerThread?.isAlive == true
+        ) {
+            return
+        }
 
-        selectedKarat =
-            preferences.getInt(
-                "selected_karat",
-                21
-            )
+        workerThread =
+            thread(
+                start = true,
+                name = "GoldPriceWorker"
+            ) {
+
+                while (running) {
+
+                    try {
+
+                        fetchAndUpdate()
+
+                    } catch (
+                        e: Exception
+                    ) {
+
+                        updateErrorNotification()
+                    }
+
+                    /*
+                     * ننتظر ثانيتين بعد انتهاء طلب السعر.
+                     *
+                     * بذلك لا توجد عدة Requests متزامنة.
+                     */
+
+                    try {
+
+                        Thread.sleep(
+                            updateInterval
+                        )
+
+                    } catch (
+                        e: InterruptedException
+                    ) {
+
+                        break
+                    }
+                }
+            }
     }
 
     // =========================================================
-    // LOAD PRICES
+    // FETCH PRICE
     // =========================================================
 
-    private fun loadPrices() {
+    private fun fetchAndUpdate() {
 
         var connection:
             HttpURLConnection? =
             null
 
         try {
-
-            // اقرأ العيار كل مرة حتى لو المستخدم
-            // غير الاختيار أثناء تشغيل الخدمة.
-            loadSelectedKarat()
 
             connection =
                 URL(apiUrl)
@@ -149,6 +242,11 @@ class GoldPriceService : Service() {
 
             connection.useCaches =
                 false
+
+            connection.setRequestProperty(
+                "Cache-Control",
+                "no-cache"
+            )
 
             connection.connect()
 
@@ -175,57 +273,44 @@ class GoldPriceService : Service() {
                 return
             }
 
-            gram24 =
+            val ounceUsd =
+                json.optDouble(
+                    "ounceUsd",
+                    0.0
+                )
+
+            val gram24 =
                 json.optDouble(
                     "gram24",
                     0.0
                 )
 
-            gram21 =
+            val gram21 =
                 json.optDouble(
                     "gram21",
                     0.0
                 )
 
-            gram18 =
+            val gram18 =
                 json.optDouble(
                     "gram18",
                     0.0
                 )
 
-            gram14 =
+            val gram14 =
                 json.optDouble(
                     "gram14",
                     gram18 * 14.0 / 18.0
                 )
 
-            val price =
-                when (selectedKarat) {
+            updateNotification(
+                ounceUsd,
+                gram24,
+                gram21,
+                gram18,
+                gram14
+            )
 
-                    24 -> gram24
-
-                    21 -> gram21
-
-                    18 -> gram18
-
-                    14 -> gram14
-
-                    else -> gram21
-                }
-
-            if (price > 0.0) {
-
-                updateNotification(
-                    "عيار $selectedKarat: ${formatNumber(price)} جنيه"
-                )
-            }
-
-        } catch (
-            e: Exception
-        ) {
-
-            // لا نوقف الخدمة عند فشل الشبكة.
-            // المحاولة التالية بعد ثانيتين.
         } finally {
 
             connection?.disconnect()
@@ -233,120 +318,15 @@ class GoldPriceService : Service() {
     }
 
     // =========================================================
-    // CREATE CHANNEL
-    // =========================================================
-
-    private fun createNotificationChannel() {
-
-        if (
-            Build.VERSION.SDK_INT >=
-            Build.VERSION_CODES.O
-        ) {
-
-            val channel =
-                NotificationChannel(
-                    channelId,
-                    "GOLD",
-                    NotificationManager.IMPORTANCE_LOW
-                )
-
-            channel.description =
-                "سعر الذهب في شريط الإشعارات"
-
-            channel.setShowBadge(
-                false
-            )
-
-            channel.setSound(
-                null,
-                null
-            )
-
-            val manager =
-                getSystemService(
-                    Context.NOTIFICATION_SERVICE
-                ) as NotificationManager
-
-            manager.createNotificationChannel(
-                channel
-            )
-        }
-    }
-
-    // =========================================================
-    // CREATE NOTIFICATION
-    // =========================================================
-
-    private fun createNotification(
-        text: String
-    ): Notification {
-
-        val intent =
-            Intent(
-                this,
-                MainActivity::class.java
-            ).apply {
-
-                flags =
-                    Intent.FLAG_ACTIVITY_SINGLE_TOP or
-                    Intent.FLAG_ACTIVITY_CLEAR_TOP
-            }
-
-        val pendingIntent =
-            PendingIntent.getActivity(
-                this,
-                0,
-                intent,
-                PendingIntent.FLAG_UPDATE_CURRENT or
-                    PendingIntent.FLAG_IMMUTABLE
-            )
-
-        return NotificationCompat.Builder(
-            this,
-            channelId
-        )
-            .setSmallIcon(
-                android.R.drawable.ic_dialog_info
-            )
-            .setContentTitle(
-                "GOLD"
-            )
-            .setContentText(
-                text
-            )
-            .setContentIntent(
-                pendingIntent
-            )
-            .setOngoing(
-                true
-            )
-            .setAutoCancel(
-                false
-            )
-            .setOnlyAlertOnce(
-                true
-            )
-            .setSilent(
-                true
-            )
-            .setPriority(
-                NotificationCompat.PRIORITY_LOW
-            )
-            .setCategory(
-                NotificationCompat.CATEGORY_SERVICE
-            )
-            .setShowWhen(
-                false
-            )
-            .build()
-    }
-
-    // =========================================================
     // UPDATE NOTIFICATION
     // =========================================================
 
     private fun updateNotification(
-        text: String
+        ounceUsd: Double,
+        gram24: Double,
+        gram21: Double,
+        gram18: Double,
+        gram14: Double
     ) {
 
         if (
@@ -357,22 +337,103 @@ class GoldPriceService : Service() {
             val permission =
                 ActivityCompat.checkSelfPermission(
                     this,
-                    android.Manifest.permission.POST_NOTIFICATIONS
+                    Manifest.permission.POST_NOTIFICATIONS
                 )
 
             if (
                 permission !=
                 PackageManager.PERMISSION_GRANTED
             ) {
-
                 return
             }
         }
 
-        val notification =
-            createNotification(
-                text
+        val selectedKarat =
+            preferences.getInt(
+                "selected_karat",
+                21
             )
+
+        val price =
+            when (selectedKarat) {
+
+                24 ->
+                    gram24
+
+                21 ->
+                    gram21
+
+                18 ->
+                    gram18
+
+                14 ->
+                    gram14
+
+                else ->
+                    gram21
+            }
+
+        if (
+            price <= 0.0 &&
+            ounceUsd <= 0.0
+        ) {
+            return
+        }
+
+        /*
+         * السطر الأول:
+         * عيار 21: 6579 ج
+         *
+         * السطر الثاني:
+         * الأونصة: $3350
+         */
+
+        val notificationText =
+            "عيار $selectedKarat: " +
+                formatNumber(price) +
+                " ج\n" +
+                "الأونصة: $" +
+                formatNumber(ounceUsd)
+
+        val notification =
+            NotificationCompat.Builder(
+                this,
+                channelId
+            )
+                .setSmallIcon(
+                    android.R.drawable.ic_dialog_info
+                )
+                .setContentTitle(
+                    "GOLD"
+                )
+                .setContentText(
+                    notificationText
+                )
+                .setStyle(
+                    NotificationCompat.BigTextStyle()
+                        .bigText(
+                            notificationText
+                        )
+                )
+                .setOngoing(
+                    true
+                )
+                .setAutoCancel(
+                    false
+                )
+                .setOnlyAlertOnce(
+                    true
+                )
+                .setSilent(
+                    true
+                )
+                .setShowWhen(
+                    false
+                )
+                .setPriority(
+                    NotificationCompat.PRIORITY_LOW
+                )
+                .build()
 
         NotificationManagerCompat
             .from(this)
@@ -383,7 +444,126 @@ class GoldPriceService : Service() {
     }
 
     // =========================================================
-    // FORMAT NUMBER
+    // ERROR NOTIFICATION
+    // =========================================================
+
+    private fun updateErrorNotification() {
+
+        if (
+            Build.VERSION.SDK_INT >=
+            Build.VERSION_CODES.TIRAMISU
+        ) {
+
+            val permission =
+                ActivityCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.POST_NOTIFICATIONS
+                )
+
+            if (
+                permission !=
+                PackageManager.PERMISSION_GRANTED
+            ) {
+                return
+            }
+        }
+
+        val notification =
+            NotificationCompat.Builder(
+                this,
+                channelId
+            )
+                .setSmallIcon(
+                    android.R.drawable.ic_dialog_info
+                )
+                .setContentTitle(
+                    "GOLD"
+                )
+                .setContentText(
+                    "جاري تحديث الأسعار..."
+                )
+                .setStyle(
+                    NotificationCompat.BigTextStyle()
+                        .bigText(
+                            "جاري محاولة تحديث أسعار الذهب..."
+                        )
+                )
+                .setOngoing(
+                    true
+                )
+                .setAutoCancel(
+                    false
+                )
+                .setOnlyAlertOnce(
+                    true
+                )
+                .setSilent(
+                    true
+                )
+                .setShowWhen(
+                    false
+                )
+                .setPriority(
+                    NotificationCompat.PRIORITY_LOW
+                )
+                .build()
+
+        NotificationManagerCompat
+            .from(this)
+            .notify(
+                notificationId,
+                notification
+            )
+    }
+
+    // =========================================================
+    // CHANNEL
+    // =========================================================
+
+    private fun createNotificationChannel() {
+
+        if (
+            Build.VERSION.SDK_INT >=
+            Build.VERSION_CODES.O
+        ) {
+
+            val manager =
+                getSystemService(
+                    Context.NOTIFICATION_SERVICE
+                ) as NotificationManager
+
+            val existingChannel =
+                manager.getNotificationChannel(
+                    channelId
+                )
+
+            if (
+                existingChannel == null
+            ) {
+
+                val channel =
+                    NotificationChannel(
+                        channelId,
+                        "GOLD",
+                        NotificationManager.IMPORTANCE_LOW
+                    )
+
+                channel.description =
+                    "أسعار الذهب والأونصة"
+
+                channel.setShowBadge(
+                    false
+                )
+
+                manager.createNotificationChannel(
+                    channel
+                )
+            }
+        }
+    }
+
+    // =========================================================
+    // FORMAT
     // =========================================================
 
     private fun formatNumber(
@@ -400,22 +580,7 @@ class GoldPriceService : Service() {
     }
 
     // =========================================================
-    // START COMMAND
-    // =========================================================
-
-    override fun onStartCommand(
-        intent: Intent?,
-        flags: Int,
-        startId: Int
-    ): Int {
-
-        loadSelectedKarat()
-
-        return START_STICKY
-    }
-
-    // =========================================================
-    // BIND
+    // BINDER
     // =========================================================
 
     override fun onBind(
@@ -431,13 +596,20 @@ class GoldPriceService : Service() {
 
     override fun onDestroy() {
 
-        executor.shutdownNow()
+        /*
+         * لا يوجد cancelNotification() هنا.
+         *
+         * الإشعار تتم إزالته فقط عندما يطلب المستخدم
+         * إيقاف شريط الأسعار من داخل التطبيق.
+         */
 
-        NotificationManagerCompat
-            .from(this)
-            .cancel(
-                notificationId
-            )
+        running =
+            false
+
+        workerThread?.interrupt()
+
+        workerThread =
+            null
 
         super.onDestroy()
     }
