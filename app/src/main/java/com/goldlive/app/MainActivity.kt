@@ -12,8 +12,6 @@ import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.os.Build
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.view.Gravity
 import android.view.View
 import android.widget.AdapterView
@@ -45,14 +43,8 @@ class MainActivity : Activity() {
     private val channelId =
         "gold_live"
 
-    private val notificationId =
-        1001
-
     private val notificationPermissionCode =
         200
-
-    private val handler =
-        Handler(Looper.getMainLooper())
 
     private var selectedKarat =
         21
@@ -95,36 +87,71 @@ class MainActivity : Activity() {
     private lateinit var localOunceText: TextView
     private lateinit var goldCoinText: TextView
 
+    private val preferences by lazy {
+        getSharedPreferences(
+            "gold_live_settings",
+            Context.MODE_PRIVATE
+        )
+    }
+
     // =========================================================
     // COLORS
     // =========================================================
 
     private val cream =
-        Color.rgb(251, 243, 213)
+        Color.rgb(
+            251,
+            243,
+            213
+        )
 
     private val dark =
-        Color.rgb(30, 41, 59)
+        Color.rgb(
+            30,
+            41,
+            59
+        )
 
     private val dark2 =
-        Color.rgb(15, 23, 42)
+        Color.rgb(
+            15,
+            23,
+            42
+        )
 
     private val gold =
-        Color.rgb(212, 175, 55)
+        Color.rgb(
+            212,
+            175,
+            55
+        )
 
     private val green =
-        Color.rgb(34, 197, 94)
+        Color.rgb(
+            34,
+            197,
+            94
+        )
 
     private val red =
-        Color.rgb(239, 68, 68)
+        Color.rgb(
+            239,
+            68,
+            68
+        )
 
     private val white =
         Color.WHITE
 
     private val grayText =
-        Color.rgb(100, 116, 139)
+        Color.rgb(
+            100,
+            116,
+            139
+        )
 
     // =========================================================
-    // NUMBER FORMAT - WITHOUT PIASTRES
+    // NUMBER FORMAT
     // =========================================================
 
     private val numberFormat =
@@ -132,24 +159,6 @@ class MainActivity : Activity() {
             "#,##0",
             DecimalFormatSymbols(Locale.US)
         )
-
-    // =========================================================
-    // UPDATE TASK
-    // =========================================================
-
-    private val updateTask =
-        object : Runnable {
-
-            override fun run() {
-
-                loadPrices()
-
-                handler.postDelayed(
-                    this,
-                    2000L
-                )
-            }
-        }
 
     // =========================================================
     // ON CREATE
@@ -163,25 +172,33 @@ class MainActivity : Activity() {
             savedInstanceState
         )
 
+        selectedKarat =
+            preferences.getInt(
+                "selected_karat",
+                21
+            )
+
+        notificationEnabled =
+            preferences.getBoolean(
+                "notification_enabled",
+                false
+            )
+
         setupSystemBars()
 
         createNotificationChannel()
 
         createInterface()
 
-        loadNotificationState()
-
         requestNotificationPermission()
 
-        // إذا كان الإشعار مفعلاً قبل إغلاق التطبيق
-        // يتم تشغيل الخدمة مرة أخرى عند فتح التطبيق
+        updateNotificationButton()
+
         if (notificationEnabled) {
             startGoldService()
         }
 
-        handler.post(
-            updateTask
-        )
+        loadPrices()
     }
 
     // =========================================================
@@ -189,6 +206,12 @@ class MainActivity : Activity() {
     // =========================================================
 
     private fun setupSystemBars() {
+
+        /*
+         * يسمح لنا بالتحكم الكامل في منطقة شريط الحالة.
+         * لكن المحتوى نفسه سيتم دفعه لأسفل بواسطة WindowInsets
+         * حتى لا يغطي الساعة والبطارية والشبكة.
+         */
 
         WindowCompat.setDecorFitsSystemWindows(
             window,
@@ -199,7 +222,7 @@ class MainActivity : Activity() {
             Color.TRANSPARENT
 
         window.navigationBarColor =
-            Color.TRANSPARENT
+            cream
 
         if (
             Build.VERSION.SDK_INT >=
@@ -210,17 +233,23 @@ class MainActivity : Activity() {
                 false
         }
 
-        WindowCompat.getInsetsController(
-            window,
-            window.decorView
-        ).apply {
+        val controller =
+            WindowCompat.getInsetsController(
+                window,
+                window.decorView
+            )
 
-            isAppearanceLightStatusBars =
-                false
+        /*
+         * شريط الحالة خلفيته فاتحة،
+         * لذلك نستخدم أيقونات داكنة حتى تكون الساعة
+         * والبطارية والشبكة واضحة.
+         */
 
-            isAppearanceLightNavigationBars =
-                true
-        }
+        controller.isAppearanceLightStatusBars =
+            true
+
+        controller.isAppearanceLightNavigationBars =
+            true
     }
 
     // =========================================================
@@ -234,81 +263,37 @@ class MainActivity : Activity() {
             Build.VERSION_CODES.O
         ) {
 
-            val channel =
-                NotificationChannel(
-                    channelId,
-                    "GOLD",
-                    NotificationManager.IMPORTANCE_LOW
-                )
-
-            channel.description =
-                "سعر الذهب في شريط الإشعارات"
-
-            channel.setShowBadge(
-                false
-            )
-
-            channel.setSound(
-                null,
-                null
-            )
-
             val manager =
                 getSystemService(
                     Context.NOTIFICATION_SERVICE
                 ) as NotificationManager
 
-            manager.createNotificationChannel(
-                channel
-            )
+            val oldChannel =
+                manager.getNotificationChannel(
+                    channelId
+                )
+
+            if (oldChannel == null) {
+
+                val channel =
+                    NotificationChannel(
+                        channelId,
+                        "GOLD",
+                        NotificationManager.IMPORTANCE_LOW
+                    )
+
+                channel.description =
+                    "سعر الذهب والأونصة"
+
+                channel.setShowBadge(
+                    false
+                )
+
+                manager.createNotificationChannel(
+                    channel
+                )
+            }
         }
-    }
-
-    // =========================================================
-    // LOAD NOTIFICATION STATE
-    // =========================================================
-
-    private fun loadNotificationState() {
-
-        val preferences =
-            getSharedPreferences(
-                "gold_live_settings",
-                Context.MODE_PRIVATE
-            )
-
-        notificationEnabled =
-            preferences.getBoolean(
-                "notification_enabled",
-                false
-            )
-
-        selectedKarat =
-            preferences.getInt(
-                "selected_karat",
-                21
-            )
-    }
-
-    // =========================================================
-    // SAVE NOTIFICATION STATE
-    // =========================================================
-
-    private fun saveNotificationState() {
-
-        getSharedPreferences(
-            "gold_live_settings",
-            Context.MODE_PRIVATE
-        )
-            .edit()
-            .putBoolean(
-                "notification_enabled",
-                notificationEnabled
-            )
-            .putInt(
-                "selected_karat",
-                selectedKarat
-            )
-            .apply()
     }
 
     // =========================================================
@@ -345,54 +330,7 @@ class MainActivity : Activity() {
     }
 
     // =========================================================
-    // START GOLD SERVICE
-    // =========================================================
-
-    private fun startGoldService() {
-
-        val intent =
-            Intent(
-                this,
-                GoldPriceService::class.java
-            )
-
-        if (
-            Build.VERSION.SDK_INT >=
-            Build.VERSION_CODES.O
-        ) {
-
-            ContextCompat.startForegroundService(
-                this,
-                intent
-            )
-
-        } else {
-
-            startService(
-                intent
-            )
-        }
-    }
-
-    // =========================================================
-    // STOP GOLD SERVICE
-    // =========================================================
-
-    private fun stopGoldService() {
-
-        val intent =
-            Intent(
-                this,
-                GoldPriceService::class.java
-            )
-
-        stopService(
-            intent
-        )
-    }
-
-    // =========================================================
-    // CREATE MAIN INTERFACE
+    // CREATE INTERFACE
     // =========================================================
 
     private fun createInterface() {
@@ -407,16 +345,19 @@ class MainActivity : Activity() {
             cream
         )
 
+        /*
+         * Safe Area حقيقي:
+         *
+         * لا نضع قيمة ثابتة مثل 36dp فقط.
+         * نأخذ الارتفاع الحقيقي لشريط الحالة من Android.
+         */
+
         root.setPadding(
             dp(12),
             dp(12),
             dp(12),
             dp(12)
         )
-
-        // =====================================================
-        // SAFE AREA
-        // =====================================================
 
         ViewCompat.setOnApplyWindowInsetsListener(
             root
@@ -782,7 +723,9 @@ class MainActivity : Activity() {
             heroPriceText
         )
 
-        // تم حذف "جنيه / جرام" بالكامل
+        /*
+         * تم حذف "جنيه / جرام" حسب طلبك.
+         */
 
         val heroStatus =
             createText(
@@ -954,9 +897,6 @@ class MainActivity : Activity() {
                         Typeface.BOLD
                     )
 
-                    textView.gravity =
-                        Gravity.CENTER_VERTICAL
-
                     textView.setPadding(
                         dp(18),
                         dp(12),
@@ -1049,11 +989,18 @@ class MainActivity : Activity() {
                             else -> 14
                         }
 
-                    saveNotificationState()
+                    preferences.edit()
+                        .putInt(
+                            "selected_karat",
+                            selectedKarat
+                        )
+                        .apply()
 
                     updateLocalPrice()
 
-                    updateNotificationFromActivity()
+                    if (notificationEnabled) {
+                        startGoldService()
+                    }
                 }
             }
         )
@@ -1106,64 +1053,22 @@ class MainActivity : Activity() {
             dp(12)
         )
 
-        val headerKarat =
-            createText(
-                "العيار",
-                13f,
-                white,
-                Typeface.BOLD
-            )
-
-        headerKarat.gravity =
-            Gravity.CENTER
-
-        tableHeader.addView(
-            headerKarat,
-            LinearLayout.LayoutParams(
-                0,
-                -2,
-                1f
-            )
+        addHeaderCell(
+            tableHeader,
+            "العيار",
+            1f
         )
 
-        val headerPrice =
-            createText(
-                "السعر",
-                13f,
-                white,
-                Typeface.BOLD
-            )
-
-        headerPrice.gravity =
-            Gravity.CENTER
-
-        tableHeader.addView(
-            headerPrice,
-            LinearLayout.LayoutParams(
-                0,
-                -2,
-                1.2f
-            )
+        addHeaderCell(
+            tableHeader,
+            "السعر",
+            1.2f
         )
 
-        val headerMovement =
-            createText(
-                "الحركة",
-                13f,
-                white,
-                Typeface.BOLD
-            )
-
-        headerMovement.gravity =
-            Gravity.CENTER
-
-        tableHeader.addView(
-            headerMovement,
-            LinearLayout.LayoutParams(
-                0,
-                -2,
-                0.6f
-            )
+        addHeaderCell(
+            tableHeader,
+            "الحركة",
+            0.6f
         )
 
         content.addView(
@@ -1233,13 +1138,6 @@ class MainActivity : Activity() {
         notificationButton =
             Button(this)
 
-        notificationButton.text =
-            if (notificationEnabled) {
-                "🔕 إيقاف شريط الأسعار"
-            } else {
-                "🔔 تفعيل شريط الأسعار"
-            }
-
         notificationButton.textSize =
             14f
 
@@ -1273,9 +1171,36 @@ class MainActivity : Activity() {
         notificationButton.background =
             notificationBackground
 
+        notificationButton.setPadding(
+            dp(10),
+            dp(4),
+            dp(10),
+            dp(4)
+        )
+
         notificationButton.setOnClickListener {
 
-            if (!notificationEnabled) {
+            if (notificationEnabled) {
+
+                notificationEnabled =
+                    false
+
+                preferences.edit()
+                    .putBoolean(
+                        "notification_enabled",
+                        false
+                    )
+                    .apply()
+
+                stopGoldService()
+
+                Toast.makeText(
+                    this,
+                    "تم إيقاف شريط الأسعار",
+                    Toast.LENGTH_SHORT
+                ).show()
+
+            } else {
 
                 if (
                     Build.VERSION.SDK_INT >=
@@ -1297,7 +1222,7 @@ class MainActivity : Activity() {
 
                         Toast.makeText(
                             this,
-                            "اسمح للتطبيق بإظهار الإشعارات أولاً",
+                            "اسمح بالإشعارات أولاً",
                             Toast.LENGTH_SHORT
                         ).show()
 
@@ -1308,10 +1233,12 @@ class MainActivity : Activity() {
                 notificationEnabled =
                     true
 
-                saveNotificationState()
-
-                notificationButton.text =
-                    "🔕 إيقاف شريط الأسعار"
+                preferences.edit()
+                    .putBoolean(
+                        "notification_enabled",
+                        true
+                    )
+                    .apply()
 
                 startGoldService()
 
@@ -1320,25 +1247,9 @@ class MainActivity : Activity() {
                     "تم تفعيل شريط الأسعار",
                     Toast.LENGTH_SHORT
                 ).show()
-
-            } else {
-
-                notificationEnabled =
-                    false
-
-                saveNotificationState()
-
-                notificationButton.text =
-                    "🔔 تفعيل شريط الأسعار"
-
-                stopGoldService()
-
-                Toast.makeText(
-                    this,
-                    "تم إيقاف شريط الأسعار",
-                    Toast.LENGTH_SHORT
-                ).show()
             }
+
+            updateNotificationButton()
         }
 
         content.addView(
@@ -1412,13 +1323,19 @@ class MainActivity : Activity() {
             )
         )
 
-        localOunceCard.addView(
+        val localOunceUnit =
             createText(
                 "EGP",
                 11f,
                 grayText,
                 Typeface.NORMAL
-            ),
+            )
+
+        localOunceUnit.gravity =
+            Gravity.CENTER
+
+        localOunceCard.addView(
+            localOunceUnit,
             LinearLayout.LayoutParams(
                 0,
                 -2,
@@ -1497,13 +1414,19 @@ class MainActivity : Activity() {
             )
         )
 
-        goldCoinCard.addView(
+        val goldCoinUnit =
             createText(
                 "EGP",
                 11f,
                 grayText,
                 Typeface.NORMAL
-            ),
+            )
+
+        goldCoinUnit.gravity =
+            Gravity.CENTER
+
+        goldCoinCard.addView(
+            goldCoinUnit,
             LinearLayout.LayoutParams(
                 0,
                 -2,
@@ -1563,7 +1486,7 @@ class MainActivity : Activity() {
             8
         )
 
-        infoCard.addView(
+        val infoText =
             createText(
                 "• تحديث تلقائي للأسعار\n" +
                     "• الأونصة العالمية بالدولار\n" +
@@ -1578,6 +1501,12 @@ class MainActivity : Activity() {
                 ),
                 Typeface.NORMAL
             )
+
+        infoText.gravity =
+            Gravity.RIGHT
+
+        infoCard.addView(
+            infoText
         )
 
         content.addView(
@@ -1612,6 +1541,37 @@ class MainActivity : Activity() {
 
         setContentView(
             root
+        )
+    }
+
+    // =========================================================
+    // HEADER CELL
+    // =========================================================
+
+    private fun addHeaderCell(
+        parent: LinearLayout,
+        text: String,
+        weight: Float
+    ) {
+
+        val tv =
+            createText(
+                text,
+                13f,
+                white,
+                Typeface.BOLD
+            )
+
+        tv.gravity =
+            Gravity.CENTER
+
+        parent.addView(
+            tv,
+            LinearLayout.LayoutParams(
+                0,
+                -2,
+                weight
+            )
         )
     }
 
@@ -1790,13 +1750,12 @@ class MainActivity : Activity() {
                         response
                     )
 
-                val success =
-                    json.optBoolean(
+                if (
+                    !json.optBoolean(
                         "success",
                         false
                     )
-
-                if (!success) {
+                ) {
 
                     runOnUiThread {
 
@@ -1899,9 +1858,10 @@ class MainActivity : Activity() {
     private fun updateInterface() {
 
         globalPriceText.text =
-            formatNumber(
-                ounceUsd
-            )
+            "$ " +
+                formatNumber(
+                    ounceUsd
+                )
 
         dollarPriceText.text =
             formatNumber(
@@ -1928,35 +1888,23 @@ class MainActivity : Activity() {
                 else -> gram21
             }
 
-        if (::localOunceText.isInitialized) {
+        localOunceText.text =
+            formatNumber(
+                localOunce
+            )
 
-            localOunceText.text =
-                formatNumber(
-                    localOunce
-                )
-        }
+        goldCoinText.text =
+            formatNumber(
+                goldCoin
+            )
 
-        if (::goldCoinText.isInitialized) {
+        selectedKaratText.text =
+            "السعر الحالي لعيار $selectedKarat"
 
-            goldCoinText.text =
-                formatNumber(
-                    goldCoin
-                )
-        }
-
-        if (::selectedKaratText.isInitialized) {
-
-            selectedKaratText.text =
-                "السعر الحالي لعيار $selectedKarat"
-        }
-
-        if (::heroPriceText.isInitialized) {
-
-            heroPriceText.text =
-                formatNumber(
-                    price
-                )
-        }
+        heroPriceText.text =
+            formatNumber(
+                price
+            )
     }
 
     // =========================================================
@@ -2011,7 +1959,7 @@ class MainActivity : Activity() {
     }
 
     // =========================================================
-    // PRICE ROW
+    // ADD PRICE ROW
     // =========================================================
 
     private fun addPriceRow(
@@ -2045,16 +1993,19 @@ class MainActivity : Activity() {
             dp(12)
         )
 
+        val name =
+            if (
+                karat == "جنيه الذهب" ||
+                karat == "أونصة محلي"
+            ) {
+                karat
+            } else {
+                "عيار $karat"
+            }
+
         val karatText =
             createText(
-                if (
-                    karat == "جنيه الذهب" ||
-                    karat == "أونصة محلي"
-                ) {
-                    karat
-                } else {
-                    "عيار $karat"
-                },
+                name,
                 13f,
                 white,
                 Typeface.BOLD
@@ -2131,7 +2082,7 @@ class MainActivity : Activity() {
     }
 
     // =========================================================
-    // FORMAT NUMBER - INTEGER ONLY
+    // FORMAT NUMBER
     // =========================================================
 
     private fun formatNumber(
@@ -2139,7 +2090,6 @@ class MainActivity : Activity() {
     ): String {
 
         if (value <= 0.0) {
-
             return "--"
         }
 
@@ -2149,32 +2099,76 @@ class MainActivity : Activity() {
     }
 
     // =========================================================
-    // UPDATE NOTIFICATION FROM ACTIVITY
+    // SERVICE
     // =========================================================
 
-    private fun updateNotificationFromActivity() {
+    private fun startGoldService() {
 
-        if (!notificationEnabled) {
-            return
-        }
+        val intent =
+            Intent(
+                this,
+                GoldPriceService::class.java
+            )
 
-        startGoldService()
+        ContextCompat.startForegroundService(
+            this,
+            intent
+        )
+    }
+
+    private fun stopGoldService() {
+
+        val intent =
+            Intent(
+                this,
+                GoldPriceService::class.java
+            )
+
+        stopService(
+            intent
+        )
     }
 
     // =========================================================
-    // ON DESTROY
+    // BUTTON STATE
     // =========================================================
 
-    override fun onDestroy() {
+    private fun updateNotificationButton() {
 
-        // مهم جدًا:
-        // لا نوقف GoldPriceService هنا.
-        // الخدمة يجب أن تستمر حتى بعد إغلاق Activity.
+        if (
+            !::notificationButton.isInitialized
+        ) {
+            return
+        }
 
-        handler.removeCallbacks(
-            updateTask
-        )
+        notificationButton.text =
+            if (notificationEnabled) {
+                "🔕 إيقاف شريط الأسعار"
+            } else {
+                "🔔 تفعيل شريط الأسعار"
+            }
+    }
 
-        super.onDestroy()
+    // =========================================================
+    // LIFECYCLE
+    // =========================================================
+
+    override fun onResume() {
+
+        super.onResume()
+
+        notificationEnabled =
+            preferences.getBoolean(
+                "notification_enabled",
+                false
+            )
+
+        updateNotificationButton()
+
+        if (notificationEnabled) {
+            startGoldService()
+        }
+
+        loadPrices()
     }
 }
