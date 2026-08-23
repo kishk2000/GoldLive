@@ -15,7 +15,6 @@ import android.os.Handler
 import android.os.Looper
 import android.view.Gravity
 import android.view.View
-import android.view.Window
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Button
@@ -55,6 +54,23 @@ class MainActivity : Activity() {
     private val handler =
         Handler(Looper.getMainLooper())
 
+    // =========================================================
+    // SHARED PREFERENCES
+    // =========================================================
+
+    private val preferencesName =
+        "gold_live_preferences"
+
+    private val notificationEnabledKey =
+        "notification_enabled"
+
+    private lateinit var preferences:
+        android.content.SharedPreferences
+
+    // =========================================================
+    // DATA
+    // =========================================================
+
     private var selectedKarat =
         21
 
@@ -84,6 +100,10 @@ class MainActivity : Activity() {
 
     private var notificationEnabled =
         false
+
+    // =========================================================
+    // VIEWS
+    // =========================================================
 
     private lateinit var globalPriceText: TextView
     private lateinit var dollarPriceText: TextView
@@ -158,9 +178,13 @@ class MainActivity : Activity() {
 
     private val numberFormat =
         DecimalFormat(
-            "#,##0.00",
+            "#,##0",
             DecimalFormatSymbols(Locale.US)
-        )
+        ).apply {
+
+            roundingMode =
+                java.math.RoundingMode.HALF_UP
+        }
 
     // =========================================================
     // UPDATE TASK
@@ -192,6 +216,19 @@ class MainActivity : Activity() {
             savedInstanceState
         )
 
+        // قراءة حالة الإشعار المحفوظة
+        preferences =
+            getSharedPreferences(
+                preferencesName,
+                Context.MODE_PRIVATE
+            )
+
+        notificationEnabled =
+            preferences.getBoolean(
+                notificationEnabledKey,
+                false
+            )
+
         setupSystemBars()
 
         createNotificationChannel()
@@ -199,6 +236,14 @@ class MainActivity : Activity() {
         createInterface()
 
         requestNotificationPermission()
+
+        updateNotificationButton()
+
+        // لو الإشعار كان مفعلاً قبل إغلاق التطبيق
+        // يظل مفعلاً ويتم تحديثه عند وصول السعر
+        if (notificationEnabled) {
+            updateNotification()
+        }
 
         handler.post(
             updateTask
@@ -258,7 +303,7 @@ class MainActivity : Activity() {
             val channel =
                 NotificationChannel(
                     channelId,
-                    "GoldLive",
+                    "GOLD",
                     NotificationManager.IMPORTANCE_LOW
                 )
 
@@ -329,23 +374,11 @@ class MainActivity : Activity() {
             cream
         )
 
-        val initialPaddingLeft =
-            dp(12)
-
-        val initialPaddingTop =
-            dp(12)
-
-        val initialPaddingRight =
-            dp(12)
-
-        val initialPaddingBottom =
-            dp(12)
-
         root.setPadding(
-            initialPaddingLeft,
-            initialPaddingTop,
-            initialPaddingRight,
-            initialPaddingBottom
+            dp(12),
+            dp(12),
+            dp(12),
+            dp(12)
         )
 
         // =====================================================
@@ -562,12 +595,13 @@ class MainActivity : Activity() {
             globalPriceText
         )
 
+        // الدولار واضح بعلامة $
         globalCard.addView(
             createText(
-                "USD",
+                "$ USD",
                 10f,
                 grayText,
-                Typeface.NORMAL
+                Typeface.BOLD
             )
         )
 
@@ -716,18 +750,7 @@ class MainActivity : Activity() {
             heroPriceText
         )
 
-        hero.addView(
-            createText(
-                "جنيه / جرام",
-                13f,
-                Color.rgb(
-                    203,
-                    213,
-                    225
-                ),
-                Typeface.NORMAL
-            )
-        )
+        // تم حذف "جنيه / جرام" بالكامل
 
         val heroStatus =
             createText(
@@ -1185,9 +1208,6 @@ class MainActivity : Activity() {
         notificationButton =
             Button(this)
 
-        notificationButton.text =
-            "🔔 تفعيل شريط الأسعار"
-
         notificationButton.textSize =
             14f
 
@@ -1230,25 +1250,17 @@ class MainActivity : Activity() {
 
         notificationButton.setOnClickListener {
 
-            notificationEnabled =
-                !notificationEnabled
+            if (notificationEnabled) {
 
-            if (
-                notificationEnabled
-            ) {
+                notificationEnabled =
+                    false
 
-                notificationButton.text =
-                    "🔕 إيقاف شريط الأسعار"
-
-                updateNotification()
-
-                Toast.makeText(
-                    this,
-                    "تم تفعيل شريط الأسعار",
-                    Toast.LENGTH_SHORT
-                ).show()
-
-            } else {
+                preferences.edit()
+                    .putBoolean(
+                        notificationEnabledKey,
+                        false
+                    )
+                    .apply()
 
                 notificationButton.text =
                     "🔔 تفعيل شريط الأسعار"
@@ -1258,6 +1270,57 @@ class MainActivity : Activity() {
                 Toast.makeText(
                     this,
                     "تم إيقاف شريط الأسعار",
+                    Toast.LENGTH_SHORT
+                ).show()
+
+            } else {
+
+                if (
+                    Build.VERSION.SDK_INT >=
+                    Build.VERSION_CODES.TIRAMISU
+                ) {
+
+                    val permission =
+                        ActivityCompat.checkSelfPermission(
+                            this,
+                            Manifest.permission.POST_NOTIFICATIONS
+                        )
+
+                    if (
+                        permission !=
+                        PackageManager.PERMISSION_GRANTED
+                    ) {
+
+                        requestNotificationPermission()
+
+                        Toast.makeText(
+                            this,
+                            "اسمح للتطبيق بإرسال الإشعارات أولاً",
+                            Toast.LENGTH_SHORT
+                        ).show()
+
+                        return@setOnClickListener
+                    }
+                }
+
+                notificationEnabled =
+                    true
+
+                preferences.edit()
+                    .putBoolean(
+                        notificationEnabledKey,
+                        true
+                    )
+                    .apply()
+
+                notificationButton.text =
+                    "🔕 إيقاف شريط الأسعار"
+
+                updateNotification()
+
+                Toast.makeText(
+                    this,
+                    "تم تفعيل شريط الأسعار",
                     Toast.LENGTH_SHORT
                 ).show()
             }
@@ -1563,6 +1626,24 @@ class MainActivity : Activity() {
         setContentView(
             root
         )
+    }
+
+    // =========================================================
+    // UPDATE NOTIFICATION BUTTON
+    // =========================================================
+
+    private fun updateNotificationButton() {
+
+        if (!::notificationButton.isInitialized) {
+            return
+        }
+
+        notificationButton.text =
+            if (notificationEnabled) {
+                "🔕 إيقاف شريط الأسعار"
+            } else {
+                "🔔 تفعيل شريط الأسعار"
+            }
     }
 
     // =========================================================
@@ -2088,7 +2169,7 @@ class MainActivity : Activity() {
     }
 
     // =========================================================
-    // FORMAT NUMBER
+    // FORMAT NUMBER - NO PIASTERS
     // =========================================================
 
     private fun formatNumber(
@@ -2123,7 +2204,7 @@ class MainActivity : Activity() {
 
         if (
             Build.VERSION.SDK_INT >=
-            33
+            Build.VERSION_CODES.TIRAMISU
         ) {
 
             val permission =
@@ -2150,10 +2231,10 @@ class MainActivity : Activity() {
                 else -> gram21
             }
 
+        // بدون قروش وبدون جنيه / جرام
         val notificationText =
             "عيار $selectedKarat: " +
-                formatNumber(price) +
-                " جنيه / جرام"
+                formatNumber(price)
 
         val notification =
             NotificationCompat.Builder(
@@ -2164,13 +2245,16 @@ class MainActivity : Activity() {
                     android.R.drawable.ic_dialog_info
                 )
                 .setContentTitle(
-                    "GOLD LIVE"
+                    "GOLD"
                 )
                 .setContentText(
                     notificationText
                 )
                 .setOngoing(
                     true
+                )
+                .setAutoCancel(
+                    false
                 )
                 .setOnlyAlertOnce(
                     true
@@ -2183,6 +2267,9 @@ class MainActivity : Activity() {
                 )
                 .setShowWhen(
                     false
+                )
+                .setCategory(
+                    NotificationCompat.CATEGORY_SERVICE
                 )
                 .build()
 
@@ -2217,7 +2304,14 @@ class MainActivity : Activity() {
             updateTask
         )
 
-        cancelNotification()
+        // مهم جداً:
+        // لا نحذف الإشعار هنا.
+        //
+        // الإشعار سيظل موجوداً بعد إغلاق Activity
+        // طالما أن المستخدم لم يضغط "إيقاف شريط الأسعار".
+        //
+        // تم حذف:
+        // cancelNotification()
 
         super.onDestroy()
     }
