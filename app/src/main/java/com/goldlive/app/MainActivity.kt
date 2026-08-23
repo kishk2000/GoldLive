@@ -295,11 +295,11 @@ class MainActivity : Activity() {
         )
 
         root.setPadding(
-            12,
-            12,
-            12,
-            12
-        )
+    12,
+    36,
+    12,
+    12
+)
 
         val scroll =
             ScrollView(this)
