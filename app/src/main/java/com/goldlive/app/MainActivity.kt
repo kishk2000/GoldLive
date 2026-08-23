@@ -710,8 +710,7 @@ class MainActivity : Activity() {
             8
         )
 
-        spinner =
-    Spinspinner =
+spinner =
     Spinner(this)
 
 spinner.setBackgroundColor(
@@ -728,7 +727,6 @@ spinner.setPadding(
     18,
     0
 )
-
 val karatNames =
     arrayOf(
         "عيار 24",
@@ -755,34 +753,6 @@ spinner.setSelection(
     1,
     false
 )
-
-val karatNames =
-    arrayOf(
-        "عيار 24",
-        "عيار 21",
-        "عيار 18",
-        "عيار 14"
-    )
-
-val adapter =
-    ArrayAdapter(
-        this,
-        android.R.layout.simple_spinner_item,
-        karatNames
-    )
-
-adapter.setDropDownViewResource(
-    android.R.layout.simple_spinner_dropdown_item
-)
-
-spinner.adapter =
-    adapter
-
-spinner.setSelection(
-    1,
-    false
-)
-
 selectorCard.addView(
     spinner,
     LinearLayout.LayoutParams(
